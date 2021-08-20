@@ -22,10 +22,14 @@ The second element should be another string with the data
 definition. And the third one is the data. Must be a string as
 well."
   :group 'copy-data-user-data
-  :type '(repeat (list
-		  (string :tag "Key code")
-		  (string :tag "Description")
-		  (string :tag "Data"))))
+  :type '(repeat (choice
+		  (list :tag "Group"
+		   (string :tag "Group key code")
+		   (string :tag "Group description"))
+		  (list :tag "Snippet"
+		   (string :tag "Key code")
+		   (string :tag "Description")
+		   (string :tag "Data")))))
 
 (defface copy-data-key
   '((t :foreground "red"
