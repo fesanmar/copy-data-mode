@@ -1,5 +1,14 @@
-;;;; A convinient way to copy data into the kill ring and use it
-;;; either inside or outside Emacs.
+;;; copy-data-mode.el --- Saves repeatedly used data to the kill ring -*- lexical-binding: t -*-
+
+;; Copyright (C) 2021 Felipe Santa Cruz Martínez Alcalá
+
+;; Author: Felipe Santa Cruz Martínez Alcalá <fesanmar@gmail.com>
+;; Maintainer: Felipe Santa Cruz Martínez Alcalá <fesanmar@gmail.com>
+;; URL: https://github.com/fesanmar/copy-data-mode
+;; Version: 0.1.0
+;; Created: 2021-08-19
+;; Keywords: kill-ring
+
 
 (defgroup copy-data-user-data nil
   "Options concerning user custom data copy.")
@@ -65,6 +74,7 @@ You can store your snippets into `copy-data-user-snippets' and
 save it into your kill ring. That way, you can that snippet
 either inside or outside Emacs."
   :lighter " copy-data"
-  :global t)
+  :global t
+  :version "0.1.0")
 
 (provide 'copy-data-mode)
