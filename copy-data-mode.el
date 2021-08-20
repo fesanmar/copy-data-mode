@@ -19,12 +19,18 @@
 The first element musth be a single character string. This will
 be used to prompt and select the data to push into the kill ring.
 The second element should be another string with the data
-definition. And the third one is the data. Must be a string as well"
+definition. And the third one is the data. Must be a string as
+well."
   :group 'copy-data-user-data
   :type '(repeat (list
 		  (string :tag "Key code")
 		  (string :tag "Description")
 		  (string :tag "Data"))))
+
+(defface copy-data-key
+  '((t :foreground "red"
+       :weight bold))
+  "The face used by snippet's keys at the echo area.")
 
 (defun copy-data-create-query ()
   "Creates accurate user data query string.
@@ -33,8 +39,7 @@ Uses the `copy-data-user-snippets' variable."
     (let ((key (car snippet))
 	  (description (nth 1 snippet)))
       (concat " ["
-	      (propertize key
-			  'face '(:foreground "red" :weight bold))
+	      (propertize key 'face 'copy-data-key)
 	      "]: " description)))
   (concat "Select snippet:"
 	  (mapconcat 'create-snippet-query copy-data-user-snippets ", ")))
@@ -46,8 +51,11 @@ Queries the user to insert the char binded to the data wanted,
 and push the accurate snippet into the kill ring. OPTION
 represents the snippet's key character.
 
-Snippets must be defined. For that `copy-data-user-snippets' can
-be customized.
+Snippets must be defined. `copy-data-user-snippets' can be
+customized for that purpose.
+
+The face used to display the snippet's keys at the echo area is
+`copy-data-key'. Can be customized as well.
 "
   (interactive (if copy-data-user-snippets
 		   (list
