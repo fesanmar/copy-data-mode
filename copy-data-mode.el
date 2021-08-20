@@ -71,9 +71,7 @@ The face used to display the snippet's keys at the echo area is
 	  (message "%s saved into kill ring."
 		   (nth 1 found-snippet)))
       (progn
-	(message "There is no [%s] key" option-chr)
-	(sit-for 2.0)
-	(message nil)))))
+	(message "There is no [%s] key" option-chr)))))
 
 ;;;###autoload
 (define-minor-mode copy-data-mode
