@@ -5,7 +5,7 @@
 ;; Author: Felipe Santa Cruz Martínez Alcalá <fesanmar@gmail.com>
 ;; Maintainer: Felipe Santa Cruz Martínez Alcalá <fesanmar@gmail.com>
 ;; URL: https://github.com/fesanmar/copy-data-mode
-;; Version: 0.1.0
+;; Version: 0.2.0
 ;; Created: 2021-08-19
 ;; Keywords: kill-ring
 
@@ -36,46 +36,75 @@ well."
        :weight bold))
   "The face used by snippet's keys at the echo area.")
 
-(defun copy-data-create-query ()
-  "Creates accurate user data query string.
-Uses the `copy-data-user-snippets' variable."
+(defun copy-data-create-query (snippets)
+  "Creates accurate user data query string from SNIPPETS.
+SNIPPETS should be a list of snippets, like
+`copy-data-create-query'."
   (defun create-snippet-query (snippet)
-    (let ((key (car snippet))
+    (let ((key (substring (car snippet) -1))
 	  (description (nth 1 snippet)))
       (concat " ["
 	      (propertize key 'face 'copy-data-key)
 	      "]: " description)))
   (concat "Select snippet:"
-	  (mapconcat 'create-snippet-query copy-data-user-snippets ", ")))
+	  (mapconcat 'create-snippet-query snippets ", ")))
 
-(defun copy-data-query (option)
+(defun copy-data-members (groups-key)
+  "Returns the member of `copy-data-user-snippets' for a group.
+GROUPS-KEY is the key for the group wanted to filter by. For
+example, if GROUPS-KEY is \"tt\", `copy-data-members' will return
+all the mebers with a \"tt\" starting key."
+  (-filter
+   (lambda (snippet)
+     (let ((groups-key-length (length groups-key))
+	   (snippet-key (car snippet)))
+       (and
+	(string-prefix-p groups-key snippet-key)
+	(= (length snippet-key) (1+ groups-key-length)))))
+   copy-data-user-snippets))
+
+(defun copy-data-read-char (prefix snippets-list)
+  "Read a char from a buffer, displaying snippets options.
+Uses PREFIX to display only the snippets or groups starting with
+that particular key in SNNIPPETS-LIST. The character displayed is
+the key's last character."
+  (read-char
+   (copy-data-create-query snippets-list)))
+
+(defun copy-data-query (&optional prefix)
   "Push accurate data into the kill ring.
 
 Queries the user to insert the char binded to the data wanted,
-and push the accurate snippet into the kill ring. OPTION
-represents the snippet's key character.
+and push the accurate snippet into the kill ring.
 
 Snippets must be defined. `copy-data-user-snippets' can be
-customized for that purpose.
+customized for that purpose. PREFIX is used to display and select
+only the snippets or groups in a particular group. \"\" will
+display first level options.
 
 The face used to display the snippet's keys at the echo area is
-`copy-data-key'. Can be customized as well.
-"
-  (interactive (if copy-data-user-snippets
-		   (list
-		    (read-char (copy-data-create-query)))
-		 (error "There is no snippet yet...")))
-  (let* ((option-chr (char-to-string option))
+`copy-data-key'. Can be customized as well."
+  (interactive)
+  (when (not copy-data-user-snippets)
+    (error "There is no snippet yet..."))
+  (let* ((prefix (or prefix ""))
+	 (filterd-snippets (copy-data-members prefix))
+	 (wanted-key (concat
+		      prefix
+		      (char-to-string
+		       (copy-data-read-char prefix filterd-snippets))))
 	 (found-snippet (-find (lambda (snippet)
-				 (string-equal (car snippet) option-chr))
-			       copy-data-user-snippets)))
-    (if found-snippet
-	(progn
-	  (kill-new (nth 2 found-snippet))
-	  (message "%s saved into kill ring."
-		   (nth 1 found-snippet)))
-      (progn
-	(message "There is no [%s] key" option-chr)))))
+				 (string-equal (car snippet) wanted-key))
+			       filterd-snippets)))
+    (cond ((and found-snippet
+		(= (length found-snippet) 3))
+	   (kill-new (nth 2 found-snippet))
+	   (message "%s saved into kill ring."
+		    (nth 1 found-snippet)))
+	  ((and found-snippet
+		(= (length found-snippet) 2))
+	   (copy-data-query wanted-key))
+	  (t (message "There is no [%s] key" wanted-key)))))
 
 ;;;###autoload
 (define-minor-mode copy-data-mode
@@ -85,6 +114,6 @@ save it into your kill ring. That way, you can that snippet
 either inside or outside Emacs."
   :lighter " copy-data"
   :global t
-  :version "0.1.0")
+  :version "0.2.0")
 
 (provide 'copy-data-mode)
