@@ -16,11 +16,20 @@
 (defcustom copy-data-user-snippets nil
   "A list mapping options to user's data to push into the kill ring.
 
-The first element musth be a single character string. This will
-be used to prompt and select the data to push into the kill ring.
-The second element should be another string with the data
+The first element musth be the snippet or group key string. This
+will be used to prompt and select the data to push into the kill
+ring. The second element should be another string with the data
 definition. And the third one is the data. Must be a string as
-well."
+well. If a snippet is member of a particular group, its key
+should start wiht the group key.
+
+For example, if we have a group like this (\"h\" \"home\") and we
+want to add a snippet inside it, like telephone, we will add a
+list like this: (\"ht\" \"Home Telephone\" \"938119238\"). And
+the complete list will look like this:
+
+((\"h\" \"home\")
+ (\"ht\" \"Home Telephone\" \"938119238\"))"
   :group 'copy-data-user-data
   :type '(repeat (choice
 		  (list :tag "Group"
