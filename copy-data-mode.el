@@ -5,7 +5,7 @@
 ;; Author: Felipe Santa Cruz Martínez Alcalá <fesanmar@gmail.com>
 ;; Maintainer: Felipe Santa Cruz Martínez Alcalá <fesanmar@gmail.com>
 ;; URL: https://github.com/fesanmar/copy-data-mode
-;; Version: 0.2.0
+;; Version: 1.0.0
 ;; Created: 2021-08-19
 ;; Keywords: kill-ring
 
@@ -40,10 +40,15 @@ the complete list will look like this:
 		   (string :tag "Description")
 		   (string :tag "Data")))))
 
-(defface copy-data-key
+(defface copy-data-snippet-key
   '((t :foreground "red"
        :weight bold))
   "The face used by snippet's keys at the echo area.")
+
+(defface copy-data-group-key
+  '((t :foreground "peru"
+       :weight bold))
+  "The face used by group's keys at the echo area.")
 
 (defun copy-data-key (snippet)
   "Returns the SNIPPET's key string."
@@ -67,9 +72,12 @@ SNIPPETS should be a list of snippets, like
 `copy-data-create-query'."
   (defun create-snippet-query (snippet)
     (let ((last-key-char (substring (copy-data-key snippet) -1))
-	  (description (copy-data-description snippet)))
+	  (description (copy-data-description snippet))
+	  (accurate-key (if (copy-data-snippet-p snippet)
+			    'copy-data-snippet-key
+			  'copy-data-group-key)))
       (concat " ["
-	      (propertize last-key-char 'face 'copy-data-key)
+	      (propertize last-key-char 'face accurate-key)
 	      "]: " description)))
   (concat "Select snippet:"
 	  (mapconcat 'create-snippet-query snippets ", ")))
@@ -107,8 +115,9 @@ customized for that purpose. PREFIX is used to display and select
 only the snippets or groups in a particular group. \"\" will
 display first level options.
 
-The face used to display the snippet's keys at the echo area is
-`copy-data-key'. Can be customized as well."
+The faces used to display the snippets and groups keys at the
+echo area are `copy-data-snippet-key' and `copy-data-group-key'.
+Can be customized as well."
   (interactive)
   (when (not copy-data-user-snippets)
     (error "There is no snippet yet..."))
@@ -139,6 +148,6 @@ save it into your kill ring. That way, you can that snippet
 either inside or outside Emacs."
   :lighter " copy-data"
   :global t
-  :version "0.2.0")
+  :version "1.0.0")
 
 (provide 'copy-data-mode)
