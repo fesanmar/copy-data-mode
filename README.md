@@ -1,12 +1,3 @@
-Copyright (C) 2021 Felipe Santa Cruz Martínez Alcalá
-
-* Author: Felipe Santa Cruz Martínez Alcalá <fesanmar@gmail.com>
-* Maintainer: Felipe Santa Cruz Martínez Alcalá <fesanmar@gmail.com>
-* URL: https://github.com/fesanmar/copy-data-mode
-* Version: 1.0.0
-* Created: 2021-08-19
-* Keywords: kill-ring
-
 # Copy Data Mode
 
 Copy Data Mode is a tool created for saving time seraching for data
@@ -21,9 +12,10 @@ Install copy-data-mode by placing `copy-data-mode.el` in
 .emacs file:
 
 ```elisp
-   (when (require 'copy-data-mode nil t)
-     (copy-data-mode)
-     (global-set-key (kbd "C-c d") 'copy-data-query) ;; use whatever key bingding
+(add-to-list 'load-path "/path/to/elisp")
+(when (require 'copy-data-mode nil t)
+  (copy-data-mode)
+  (global-set-key (kbd "C-c d") 'copy-data-query)) ;; use whatever key bingding
 ```
 
 ## Usage
@@ -36,24 +28,39 @@ create your snippets by customizing the `copy-data-user-snippets`:
 Or you can set the variable yourself. Here is an example:
 
 ```elisp
-  (setq copy-data-user-snippets (("h" "Home snippets")
-                                 ("hd" "Dog name" "Roger")
-                                 ("ha" "Home Address" "That Creepy House 1")
-                                 ("w" "Work snippets")
-                                 ("wp" "My project")
-                                 ("wpb" "This year branches prefix" "/wawa/wi/wa/US21")
-                                 ("wpt" "My Team Leader" "Roger As Well")
-                                 ("wu" "Work User" "165432"))
+(setq copy-data-user-snippets
+      '(("h" "Home snippets")
+	("hd" "Dog name" "Roger")
+	("ha" "Home Address" "That Creepy House 1")
+	("w" "Work snippets")
+	("wp" "My project")
+	("wpb" "This year branches prefix" "/wawa/wi/wa/US21")
+	("wpt" "My Team Leader" "Roger As Well")
+	("wu" "Work User" "165432")))
 ```
 
-As you can see, you can create groups and place snippets inside that
+As you can see, you can create groups and place snippets inside those
 groups. Of course, you can create snippet belonging to no group as
 well. Now, if you want to copy your Work User, you just have to press
 `M-x copy-data-query RET wu` and 165432 will be ready to be pasted
 anywere you want. You don't have to memorize thouse paths; the echo
 area will show you the aviable snippets or groups for each level.
 
+![Copy Data Mode Usage](./screenshots/copy-data-usage-example.gif)
+
+If you want to know more about `copy-data-user-snippets` format, just
+run `C-h v copy-data-user-snippets`.
+
 ## License and stuff
+
+Copyright (C) 2021 Felipe Santa Cruz Martínez Alcalá
+
+* Author: Felipe Santa Cruz Martínez Alcalá <fesanmar@gmail.com>
+* Maintainer: Felipe Santa Cruz Martínez Alcalá <fesanmar@gmail.com>
+* URL: https://github.com/fesanmar/copy-data-mode
+* Version: 1.0.0
+* Created: 2021-08-19
+* Keywords: kill-ring
 
 * NOTE: THIS IS A BETA VERSION OF COPY DATA MODE. USE AT YOUR OWN
 RISK. THIS FILE IS SUBJECT TO CHANGE, AND NOT SUITABLE FOR

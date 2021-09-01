@@ -51,7 +51,7 @@
 ;;;                                  ("wu" "Work User" "165432"))
 
 ;;; As you can see, you can create groups and place snippets inside
-;;; that groups. Of course, you can create snippet belonging to no
+;;; those groups. Of course, you can create snippet belonging to no
 ;;; group as well. Now, if you want to copy your Work User, you just
 ;;; have to press `M-x copy-data-query RET wu' and 165432 will be
 ;;; ready to be pasted anywere you want. You don't have to memorize
