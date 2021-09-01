@@ -5,13 +5,12 @@
 ;; Author: Felipe Santa Cruz Martínez Alcalá <fesanmar@gmail.com>
 ;; Maintainer: Felipe Santa Cruz Martínez Alcalá <fesanmar@gmail.com>
 ;; URL: https://github.com/fesanmar/copy-data-mode
-;; Version: 1.0.0
+;; Version: 1.1.0
 ;; Created: 2021-08-19
 ;; Keywords: kill-ring
 
-;; NOTE: THIS IS A BETA VERSION OF COPY DATA MODE. USE AT YOUR OWN
-;; RISK. THIS FILE IS SUBJECT TO CHANGE, AND NOT SUITABLE FOR
-;; DISTRIBUTION BY PACKAGE MANAGERS SUCH AS APT, PKGSRC, MACPORTS, &C.
+;; THIS FILE IS SUBJECT TO CHANGE, AND NOT SUITABLE FOR DISTRIBUTION
+;; BY PACKAGE MANAGERS SUCH AS APT, PKGSRC, MACPORTS, &C.
 
 ;; Copy Data Mode is free software: you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -30,25 +29,25 @@
 ;;; Install copy-data-mode by placing `copy-data-mode.el' in
 ;;; `/path/to/elisp', a directory of your choice, and adding to your
 ;;; .emacs file:
-;;;
-;;;    (when (require 'copy-data-mode nil t)
-;;;      (copy-data-mode)
-;;;      (global-set-key (kbd "C-c d") 'copy-data-query) ;; use whatever key bingding
+;; (add-to-list 'load-path "/path/to/elisp")
+;; (when (require 'copy-data-mode nil t)
+;;   (copy-data-mode)
+;;   (global-set-key (kbd "C-c d") 'copy-data-query)) ;; use whatever key bingding
 
 ;;; Copy Data Mode is a tool created for saving time seraching for
 ;;; some data and copying it just for pasting somewhere else. First of
 ;;; all, you need to create your backend, your data pool. You can
 ;;; create your snippets by customizing the `copy-data-user-snippets'
 ;;; variable or creating a list yourself. Here is an example:
-
-;;;   (setq copy-data-user-snippets (("h" "Home snippets")
-;;;                                  ("hd" "Dog name" "Roger")
-;;;                                  ("ha" "Home Address" "That Creepy House 1")
-;;;                                  ("w" "Work snippets")
-;;;                                  ("wp" "My project")
-;;;                                  ("wpb" "This year branches prefix" "/wawa/wi/wa/US21")
-;;;                                  ("wpt" "My Team Leader" "Roger As Well")
-;;;                                  ("wu" "Work User" "165432"))
+;; (setq copy-data-user-snippets
+;;       '(("h" "Home snippets")
+;; 	("hd" "Dog name" "Roger")
+;; 	("ha" "Home Address" "That Creepy House 1")
+;; 	("w" "Work snippets")
+;; 	("wp" "My project")
+;; 	("wpb" "This year branches prefix" "/wawa/wi/wa/US21")
+;; 	("wpt" "My Team Leader" "Roger As Well")
+;; 	("wu" "Work User" "165432")))
 
 ;;; As you can see, you can create groups and place snippets inside
 ;;; those groups. Of course, you can create snippet belonging to no
@@ -88,6 +87,23 @@ the complete list will look like this:
 		   (string :tag "Description")
 		   (string :tag "Data")))))
 
+(defcustom copy-data-query-sort 'copy-data-sort-no
+  "The function used to sort the elements in the echo area.
+
+This variable is a function that takes two arguments and returns
+non-`nil' if the first argument should sort before the second.
+
+There are some functions already defined for this purpose:
+
+- No sorting at all: `copy-data-sort-no'
+- Place groups first `copy-data-sort-by-groups'
+- Place groups first `copy-data-sort-by-groups'"
+  :group 'copy-data-user-data
+  :type '(choice
+	  (function-item :tag "No sorting at all" copy-data-sort-no)
+	  (function-item :tag "Place groups first" copy-data-sort-by-groups)
+	  (function-item :tag "Place snippets first" copy-data-sort-by-snippets)))
+
 (defface copy-data-snippet-key
   '((t :foreground "red"
        :weight bold))
@@ -114,10 +130,24 @@ the complete list will look like this:
   "Return t if SNIPPET is a real snippet not a group."
   (= (length snippet) 3))
 
+(defun copy-data-sort-by-groups (el1 el2)
+  "Returns t if EL1 is a group and EL2 isn't."
+  (and (copy-data-group-p el1)
+       (copy-data-snippet-p el2)))
+
+(defun copy-data-sort-by-snippets (el1 el2)
+  "Returns t if EL1 is a snippet and EL2 isn't."
+  (and (copy-data-snippet-p el1)
+       (copy-data-group-p el2)))
+
+(defun copy-data-sort-no (el1 el2)
+  "Returs nil."
+  nil)
+
 (defun copy-data-create-query (snippets)
   "Creates accurate user data query string from SNIPPETS.
 SNIPPETS should be a list of snippets, like
-`copy-data-create-query'."
+`copy-data-user-snippets'."
   (defun create-snippet-query (snippet)
     (let ((last-key-char (substring (copy-data-key snippet) -1))
 	  (description (copy-data-description snippet))
@@ -127,8 +157,11 @@ SNIPPETS should be a list of snippets, like
       (concat " ["
 	      (propertize last-key-char 'face accurate-key)
 	      "]: " description)))
-  (concat "Select snippet:"
-	  (mapconcat 'create-snippet-query snippets ", ")))
+  (let ((sorted-snippets (seq-sort copy-data-query-sort snippets)))
+    (concat "Select snippet:"
+	    (mapconcat 'create-snippet-query
+		       sorted-snippets
+		       ", "))))
 
 (defun copy-data-members (groups-key)
   "Returns the member of `copy-data-user-snippets' for a group.
@@ -165,7 +198,10 @@ display first level options.
 
 The faces used to display the snippets and groups keys at the
 echo area are `copy-data-snippet-key' and `copy-data-group-key'.
-Can be customized as well."
+Can be customized as well.
+
+The order used to display the elements in the echo area can be
+customized by the `copy-data-query-sort' variable."
   (interactive)
   (when (not copy-data-user-snippets)
     (error "There is no snippet yet..."))
@@ -196,6 +232,6 @@ save it into your kill ring. That way, you can that snippet
 either inside or outside Emacs."
   :lighter " copy-data"
   :global t
-  :version "1.0.0")
+  :version "1.1.0")
 
 (provide 'copy-data-mode)

@@ -51,6 +51,25 @@ area will show you the aviable snippets or groups for each level.
 If you want to know more about `copy-data-user-snippets` format, just
 run `C-h v copy-data-user-snippets`.
 
+## Customizations
+
+A number of variables can be custimized.
+
+The faces used to display the snippets and groups keys at the echo
+area are defined at `copy-data-snippet-key` and `copy-data-group-key`.
+You can customize them.
+
+The order used to display the elements in the echo area can be
+customized through the `copy-data-query-sort` variable. It accepts any
+function that takes two arguments and returns non-`nil` if the first
+argument should sort before the second.
+
+There are some functions already defined for this purpose:
+
+- No sorting at all: `copy-data-sort-no`
+- Place groups first `copy-data-sort-by-groups`
+- Place groups first `copy-data-sort-by-groups`
+
 ## License and stuff
 
 Copyright (C) 2021 Felipe Santa Cruz Martínez Alcalá
@@ -58,13 +77,12 @@ Copyright (C) 2021 Felipe Santa Cruz Martínez Alcalá
 * Author: Felipe Santa Cruz Martínez Alcalá <fesanmar@gmail.com>
 * Maintainer: Felipe Santa Cruz Martínez Alcalá <fesanmar@gmail.com>
 * URL: https://github.com/fesanmar/copy-data-mode
-* Version: 1.0.0
+* Version: 1.1.0
 * Created: 2021-08-19
 * Keywords: kill-ring
 
-* NOTE: THIS IS A BETA VERSION OF COPY DATA MODE. USE AT YOUR OWN
-RISK. THIS FILE IS SUBJECT TO CHANGE, AND NOT SUITABLE FOR
-DISTRIBUTION BY PACKAGE MANAGERS SUCH AS APT, PKGSRC, MACPORTS, &C.
+THIS FILE IS SUBJECT TO CHANGE, AND NOT SUITABLE FOR DISTRIBUTION BY
+PACKAGE MANAGERS SUCH AS APT, PKGSRC, MACPORTS, &C.
 
 Copy Data Mode is free software: you can redistribute it and/or
 modify it under the terms of the GNU General Public License as
