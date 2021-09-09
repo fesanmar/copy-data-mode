@@ -114,44 +114,44 @@ There are some functions already defined for this purpose:
        :weight bold))
   "The face used by group's keys at the echo area.")
 
-(defun copy-data-key (snippet)
+(defun copy-data--key (snippet)
   "Returns the SNIPPET's key string."
   (car snippet))
 
-(defun copy-data-description (snippet)
+(defun copy-data--description (snippet)
   "Returns the SNIPPET's description."
   (nth 1 snippet))
 
-(defun copy-data-group-p (snippet)
+(defun copy-data--group-p (snippet)
   "Return t if SNIPPET is a group."
   (= (length snippet) 2))
 
-(defun copy-data-snippet-p (snippet)
+(defun copy-data--snippet-p (snippet)
   "Return t if SNIPPET is a real snippet not a group."
   (= (length snippet) 3))
 
 (defun copy-data-sort-by-groups (el1 el2)
   "Returns t if EL1 is a group and EL2 isn't."
-  (and (copy-data-group-p el1)
-       (copy-data-snippet-p el2)))
+  (and (copy-data--group-p el1)
+       (copy-data--snippet-p el2)))
 
 (defun copy-data-sort-by-snippets (el1 el2)
   "Returns t if EL1 is a snippet and EL2 isn't."
-  (and (copy-data-snippet-p el1)
-       (copy-data-group-p el2)))
+  (and (copy-data--snippet-p el1)
+       (copy-data--group-p el2)))
 
 (defun copy-data-sort-no (el1 el2)
   "Returs nil."
   nil)
 
-(defun copy-data-create-query (snippets)
+(defun copy-data--create-query (snippets)
   "Creates accurate user data query string from SNIPPETS.
 SNIPPETS should be a list of snippets, like
 `copy-data-user-snippets'."
   (defun create-snippet-query (snippet)
-    (let ((last-key-char (substring (copy-data-key snippet) -1))
-	  (description (copy-data-description snippet))
-	  (accurate-key (if (copy-data-snippet-p snippet)
+    (let ((last-key-char (substring (copy-data--key snippet) -1))
+	  (description (copy-data--description snippet))
+	  (accurate-key (if (copy-data--snippet-p snippet)
 			    'copy-data-snippet-key
 			  'copy-data-group-key)))
       (concat " ["
@@ -163,27 +163,27 @@ SNIPPETS should be a list of snippets, like
 		       sorted-snippets
 		       ", "))))
 
-(defun copy-data-members (groups-key)
+(defun copy-data--group-members (groups-key)
   "Returns the member of `copy-data-user-snippets' for a group.
 GROUPS-KEY is the key for the group wanted to filter by. For
-example, if GROUPS-KEY is \"tt\", `copy-data-members' will return
-all the mebers with a \"tt\" starting key."
+example, if GROUPS-KEY is \"tt\", `copy-data--group-members' will
+return all the mebers with a \"tt\" starting key."
   (-filter
    (lambda (snippet)
      (let ((groups-key-length (length groups-key))
-	   (snippet-key (copy-data-key snippet)))
+	   (snippet-key (copy-data--key snippet)))
        (and
 	(string-prefix-p groups-key snippet-key)
 	(= (length snippet-key) (1+ groups-key-length)))))
    copy-data-user-snippets))
 
-(defun copy-data-read-char (prefix snippets-list)
+(defun copy-data--read-char (prefix snippets-list)
   "Read a char from a buffer, displaying snippets options.
 Uses PREFIX to display only the snippets or groups starting with
 that particular key in SNNIPPETS-LIST. The character displayed is
 the key's last character."
   (read-char
-   (copy-data-create-query snippets-list)))
+   (copy-data--create-query snippets-list)))
 
 (defun copy-data-query (&optional prefix)
   "Push accurate data into the kill ring.
@@ -206,21 +206,21 @@ customized by the `copy-data-query-sort' variable."
   (when (not copy-data-user-snippets)
     (error "There is no snippet yet..."))
   (let* ((prefix (or prefix ""))
-	 (filterd-snippets (copy-data-members prefix))
+	 (filterd-snippets (copy-data--group-members prefix))
 	 (wanted-key (concat
 		      prefix
 		      (char-to-string
-		       (copy-data-read-char prefix filterd-snippets))))
+		       (copy-data--read-char prefix filterd-snippets))))
 	 (found-snippet (-find (lambda (snippet)
-				 (string-equal (copy-data-key snippet) wanted-key))
+				 (string-equal (copy-data--key snippet) wanted-key))
 			       filterd-snippets)))
     (cond ((and found-snippet
-		(copy-data-snippet-p found-snippet))
+		(copy-data--snippet-p found-snippet))
 	   (kill-new (nth 2 found-snippet))
 	   (message "%s saved into kill ring."
-		    (copy-data-description found-snippet)))
+		    (copy-data--description found-snippet)))
 	  ((and found-snippet
-		(copy-data-group-p found-snippet))
+		(copy-data--group-p found-snippet))
 	   (copy-data-query wanted-key))
 	  (t (message "There is no [%s] key" wanted-key)))))
 
