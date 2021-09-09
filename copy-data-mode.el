@@ -26,19 +26,21 @@
 ;; along with Copy Data Mode. If not, see
 ;; <http://www.gnu.org/licenses/>.
 
-;;; Install copy-data-mode by placing `copy-data-mode.el' in
-;;; `/path/to/elisp', a directory of your choice, and adding to your
-;;; .emacs file:
+;; Install copy-data-mode by placing `copy-data-mode.el' in
+;; `/path/to/elisp', a directory of your choice, and adding to your
+;; .emacs file:
+
 ;; (add-to-list 'load-path "/path/to/elisp")
 ;; (when (require 'copy-data-mode nil t)
 ;;   (copy-data-mode)
 ;;   (global-set-key (kbd "C-c d") 'copy-data-query)) ;; use whatever key bingding
 
-;;; Copy Data Mode is a tool created for saving time seraching for
-;;; some data and copying it just for pasting somewhere else. First of
-;;; all, you need to create your backend, your data pool. You can
-;;; create your snippets by customizing the `copy-data-user-snippets'
-;;; variable or creating a list yourself. Here is an example:
+;; Copy Data Mode is a tool created for saving time seraching for
+;; some data and copying it just for pasting somewhere else. First of
+;; all, you need to create your backend, your data pool. You can
+;; create your snippets by customizing the `copy-data-user-snippets'
+;; variable or creating a list yourself. Here is an example:
+
 ;; (setq copy-data-user-snippets
 ;;       '(("h" "Home snippets")
 ;; 	("hd" "Dog name" "Roger")
@@ -49,13 +51,13 @@
 ;; 	("wpt" "My Team Leader" "Roger As Well")
 ;; 	("wu" "Work User" "165432")))
 
-;;; As you can see, you can create groups and place snippets inside
-;;; those groups. Of course, you can create snippet belonging to no
-;;; group as well. Now, if you want to copy your Work User, you just
-;;; have to press `M-x copy-data-query RET wu' and 165432 will be
-;;; ready to be pasted anywere you want. You don't have to memorize
-;;; thouse paths; the echo area will show you the aviable snippets or
-;;; groups for each level.
+;; As you can see, you can create groups and place snippets inside
+;; those groups. Of course, you can create snippet belonging to no
+;; group as well. Now, if you want to copy your Work User, you just
+;; have to press `M-x copy-data-query RET wu' and 165432 will be
+;; ready to be pasted anywere you want. You don't have to memorize
+;; thouse paths; the echo area will show you the aviable snippets or
+;; groups for each level.
 
 (defgroup copy-data-user-data nil
   "Options concerning user custom data copy.")
