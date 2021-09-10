@@ -179,11 +179,9 @@ return all the mebers with a \"tt\" starting key."
 	(= (length snippet-key) (1+ groups-key-length)))))
    copy-data-user-snippets))
 
-(defun copy-data--read-char (prefix snippets-list)
+(defun copy-data--read-char (snippets-list)
   "Read a char from a buffer, displaying snippets options.
-Uses PREFIX to display only the snippets or groups starting with
-that particular key in SNNIPPETS-LIST. The character displayed is
-the key's last character."
+ The character displayed is the key's last character."
   (read-char
    (copy-data--create-query snippets-list)))
 
@@ -212,7 +210,7 @@ customized by the `copy-data-query-sort' variable."
 	 (wanted-key (concat
 		      prefix
 		      (char-to-string
-		       (copy-data--read-char prefix filterd-snippets))))
+		       (copy-data--read-char filterd-snippets))))
 	 (found-snippet (-find (lambda (snippet)
 				 (string-equal (copy-data--key snippet) wanted-key))
 			       filterd-snippets)))
