@@ -116,9 +116,11 @@ There are some functions already defined for this purpose:
        :weight bold))
   "The face used by group's keys at the echo area.")
 
-(defconst copy-data--query-head
-  "Select snippet:"
+(defconst copy-data--query-head "Select snippet:"
   "Head of the query created by `copy-data--create-query'")
+
+(defconst copy-data--not-found-msg "There is no [%s] key"
+  "Message to be displayed when user insert not existing key.")
 
 (defun copy-data--key (snippet)
   "Returns the SNIPPET's key string."
@@ -226,7 +228,7 @@ customized by the `copy-data-query-sort' variable."
 	  ((and found-snippet
 		(copy-data--group-p found-snippet))
 	   (copy-data-query wanted-key))
-	  (t (message "There is no [%s] key" wanted-key)))))
+	  (t (message copy-data--not-found-msg wanted-key)))))
 
 ;;;###autoload
 (define-minor-mode copy-data-mode

@@ -116,3 +116,22 @@ second element"
 		snippet-description-ta
 		propertized-group-key-t
 		group-description-t))))))
+
+(ert-deftest copy-data-query-test ()
+  "Copy `copy-data-query' interactively."
+  (let ((copy-data-user-snippets `(,group-t ,snippet-a ,snippet-ta)))
+    (let (kill-ring
+	  (unread-command-events (listify-key-sequence (kbd "a"))))
+      (copy-data-query)
+      (should (string= (car kill-ring) snippet-data-a)))
+    (let (kill-ring
+	  (unread-command-events (listify-key-sequence (kbd "ta"))))
+      (copy-data-query)
+      (should (string= (car kill-ring) snippet-group-t-data-a)))
+    (let (kill-ring
+	  (unread-command-events (listify-key-sequence (kbd "o"))))
+      (should
+       (string= (copy-data-query)
+		(format copy-data--not-found-msg "o"))))
+    (let ((copy-data-user-snippets nil))
+      (should-error (copy-data-query)))))
