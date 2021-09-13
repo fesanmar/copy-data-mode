@@ -128,10 +128,14 @@ second element"
 	  (unread-command-events (listify-key-sequence (kbd "ta"))))
       (copy-data-query)
       (should (string= (car kill-ring) snippet-group-t-data-a)))
-    (let (kill-ring
-	  (unread-command-events (listify-key-sequence (kbd "o"))))
+    (let* (kill-ring
+	   (key-fail "o")
+	   (unread-command-events (listify-key-sequence (kbd key-fail))))
       (should
        (string= (copy-data-query)
-		(format copy-data--not-found-msg "o"))))
-    (let ((copy-data-user-snippets nil))
-      (should-error (copy-data-query)))))
+		(format copy-data--not-found-msg key-fail)))
+      (should-not kill-ring))
+    (let (kill-ring
+	  (copy-data-user-snippets nil))
+      (should-error (copy-data-query))
+      (should-not kill-ring))))
