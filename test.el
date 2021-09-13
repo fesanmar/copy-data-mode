@@ -31,16 +31,23 @@
 (defconst snippet-a `(,snippet-key-a ,snippet-description-a ,snippet-data-a))
 
 ;; Group t
-(defconst key-group-t "t")
-(defconst description-group-t "T group description")
-(defconst group-t `(,key-group-t ,description-group-t))
+(defconst group-key-t "t")
+(defconst group-description-t "T group description")
+(defconst group-t `(,group-key-t ,group-description-t))
+
+(defconst snippet-key-ta "ta")
+(defconst snippet-description-ta "A snippet from T group")
+(defconst snippet-group-t-data-a "just data")
+(defconst snippet-ta `(,snippet-key-ta
+		       ,snippet-description-ta
+		       ,snippet-group-t-data-a))
 
 ;;; Test accesors and predicates
 (ert-deftest copy-data-key-accesor ()
   "Calling `copy-data--key' on list should return its first
 element"
   (should
-   (string= (copy-data--key group-t) key-group-t))
+   (string= (copy-data--key group-t) group-key-t))
   (should-not (copy-data--key nil)))
 
 (ert-deftest copy-data-description-accesor ()
@@ -48,9 +55,9 @@ element"
 second element"
   (should
    (string= (copy-data--description group-t)
-	    description-group-t))
+	    group-description-t))
   (should-not (copy-data--description nil))
-  (should-not (copy-data--description `(,key-group-t))))
+  (should-not (copy-data--description `(,group-key-t))))
 
 (ert-deftest copy-data-group-predicate ()
   "`copy-data--group-p' returns t if list's length = 2"
@@ -65,3 +72,47 @@ second element"
   (should-not (copy-data--snippet-p group-t))
   (should-not (copy-data--snippet-p '("just-key")))
   (should-not (copy-data--snippet-p `(,@snippet-a "something else"))))
+
+(ert-deftest copy-data-create-query ()
+  "`copy-data-create-query' should return query string"
+  (defun last-key-char (el)
+    (substring (copy-data--key el) -1))
+  (let* ((abstract-query "%s [%s]: %s,  [%s]: %s,  [%s]: %s")
+	 (propertized-group-key-t
+	  (propertize group-key-t 'face 'copy-data-group-key))
+	 (propertized-key-snippet-a
+	  (propertize snippet-key-a 'face 'copy-data-snippet-key))
+	 (propertized-key-snippet-ta
+	  (propertize (last-key-char snippet-ta)
+		      'face 'copy-data-snippet-key))
+	 (formated-query
+	  (format abstract-query
+		  copy-data--query-head
+		  propertized-group-key-t
+		  group-description-t
+		  propertized-key-snippet-a
+		  snippet-description-a
+		  propertized-key-snippet-ta
+		  snippet-description-ta)))
+    (let ((copy-data-query-sort #'copy-data-sort-no))
+      (should
+       (equal-including-properties
+	(copy-data--create-query `(,group-t ,snippet-a ,snippet-ta))
+	formated-query)))
+    (let ((copy-data-query-sort #'copy-data-sort-by-groups))
+      (should
+       (equal-including-properties
+	(copy-data--create-query `(,snippet-a ,group-t ,snippet-ta))
+	formated-query)))
+    (let ((copy-data-query-sort #'copy-data-sort-by-snippets))
+      (should
+       (equal-including-properties
+	(copy-data--create-query `(,group-t ,snippet-a ,snippet-ta))
+	(format abstract-query
+		copy-data--query-head
+		propertized-key-snippet-a
+		snippet-description-a
+		propertized-key-snippet-ta
+		snippet-description-ta
+		propertized-group-key-t
+		group-description-t))))))

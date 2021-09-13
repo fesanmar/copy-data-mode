@@ -116,6 +116,10 @@ There are some functions already defined for this purpose:
        :weight bold))
   "The face used by group's keys at the echo area.")
 
+(defconst copy-data--query-head
+  "Select snippet:"
+  "Head of the query created by `copy-data--create-query'")
+
 (defun copy-data--key (snippet)
   "Returns the SNIPPET's key string."
   (car snippet))
@@ -160,7 +164,7 @@ SNIPPETS should be a list of snippets, like
 	      (propertize last-key-char 'face accurate-key)
 	      "]: " description)))
   (let ((sorted-snippets (seq-sort copy-data-query-sort snippets)))
-    (concat "Select snippet:"
+    (concat copy-data--query-head
 	    (mapconcat 'create-snippet-query
 		       sorted-snippets
 		       ", "))))
