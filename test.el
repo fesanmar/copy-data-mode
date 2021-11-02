@@ -26,18 +26,18 @@
 ;;; Test constants
 ;; Not grouped snipped
 (defconst snippet-key-a "a")
-(defconst snippet-description-a "A snippet description")
-(defconst snippet-data-a "A snippet data")
+(defconst snippet-description-a "ASnippetDescription")
+(defconst snippet-data-a "ASnippetData")
 (defconst snippet-a `(,snippet-key-a ,snippet-description-a ,snippet-data-a))
 
 ;; Group t
 (defconst group-key-t "t")
-(defconst group-description-t "T group description")
+(defconst group-description-t "TGroupDescription")
 (defconst group-t `(,group-key-t ,group-description-t))
 
 (defconst snippet-key-ta "ta")
-(defconst snippet-description-ta "A snippet from T group")
-(defconst snippet-group-t-data-a "just data")
+(defconst snippet-description-ta "ASnippetFromTGroup")
+(defconst snippet-group-t-data-a "JustData")
 (defconst snippet-ta `(,snippet-key-ta
 		       ,snippet-description-ta
 		       ,snippet-group-t-data-a))
@@ -77,7 +77,8 @@ second element"
   "`copy-data-create-query' should return query string"
   (defun last-key-char (el)
     (substring (copy-data--key el) -1))
-  (let* ((abstract-query "%s [%s]: %s,  [%s]: %s,  [%s]: %s")
+  (let* ((copy-data-hot-edit-enable nil)
+	 (abstract-query "%s [%s]: %s,  [%s]: %s,  [%s]: %s")
 	 (propertized-group-key-t
 	  (propertize group-key-t 'face 'copy-data-group-key))
 	 (propertized-key-snippet-a
@@ -119,7 +120,8 @@ second element"
 
 (ert-deftest copy-data-query-test ()
   "Copy `copy-data-query' interactively."
-  (let ((copy-data-user-snippets `(,group-t ,snippet-a ,snippet-ta)))
+  (let ((copy-data-hot-edit-enable nil)
+	(copy-data-user-snippets `(,group-t ,snippet-a ,snippet-ta)))
     (let (kill-ring
 	  (unread-command-events (listify-key-sequence (kbd "a"))))
       (copy-data-query)
@@ -128,6 +130,11 @@ second element"
 	  (unread-command-events (listify-key-sequence (kbd "ta"))))
       (copy-data-query)
       (should (string= (car kill-ring) snippet-group-t-data-a)))
+    (let (kill-ring
+	  (copy-data-user-snippets `(,group-t ,snippet-a))
+	  (unread-command-events (listify-key-sequence (kbd "t"))))
+      (should-error (copy-data-query))
+      (should-not kill-ring))
     (let* (kill-ring
 	   (key-fail "o")
 	   (unread-command-events (listify-key-sequence (kbd key-fail))))
@@ -139,3 +146,97 @@ second element"
 	  (copy-data-user-snippets nil))
       (should-error (copy-data-query))
       (should-not kill-ring))))
+
+(defmacro with-hot-edit-fixtures (&rest body)
+  `(let ((test-custom-file (make-temp-file "hot-edit-custom" nil ".el")))
+     (unwind-protect
+	 (let ((copy-data-user-snippets nil)
+	       (copy-data-hot-edit-enable t)
+	       (copy-data-hot-edit-add-key ?+)
+	       (custom-file test-custom-file))
+	   ,@body)
+       (delete-file test-custom-file))))
+
+;;; Test hot-edit
+
+(defun add-element-string (element &optional prefix)
+  "Creates string of events for adding a new element.
+
+Will create something like \"saTest\rATest\r\". This is the key
+event that creates a new snippet key the key \"a\", the
+description \"aTest\" and the data \"ATest\"."
+  (let ((snippet-p (copy-data--snippet-p element))
+	(return "\r"))
+    (concat
+     (or prefix "")
+     (string copy-data-hot-edit-add-key)
+     (if snippet-p "s" "g")
+     (copy-data--key element)
+     (copy-data--description element)
+     return
+     (if snippet-p
+	 (concat (copy-data--data element) return)
+       ""))))
+
+(ert-deftest copy-data-hot-edit-add ()
+  "If `copy-data-hot-edit-enable' is t should add an element."
+  ;; Given hot edit disable When adding snippet Then will signal error
+  (with-hot-edit-fixtures
+   (let (kill-ring
+	 (unread-command-events (listify-key-sequence (kbd "+")))
+	 (copy-data-hot-edit-enable nil))
+     (should-error (copy-data-query))
+     (should-not kill-ring)))
+  ;; Given hot edit enabled When adding snippet Then will be added
+  (with-hot-edit-fixtures
+   (let ((unread-command-events
+	  (listify-key-sequence (kbd (add-element-string snippet-a)))))
+     (copy-data-query)
+     (should (equal `(,snippet-a) copy-data-user-snippets))))
+  ;; Given hot edit enabled and an existing group When adding a
+  ;; snippet inside it Then will be added
+  (with-hot-edit-fixtures
+   (let ((copy-data-user-snippets `(,group-t))
+	 (unread-command-events
+	  (listify-key-sequence (kbd (add-element-string snippet-a "t")))))
+     (copy-data-query)
+     (should (equal
+	      `(,group-t ("ta" ,snippet-description-a ,snippet-data-a))
+	      copy-data-user-snippets))))
+  ;; Given hot edit disable When adding a group Then a snippet will be added
+  (with-hot-edit-fixtures
+   (let ((unread-command-events
+	  (listify-key-sequence (kbd (add-element-string group-t)))))
+     (copy-data-query)
+     (should (equal `(,group-t) copy-data-user-snippets))))
+  ;; Given hot edit enable and existing snippet When adding a snippet
+  ;; with same key as existing element in the group Then will singal
+  ;; error
+  (with-hot-edit-fixtures
+   (let ((copy-data-user-snippets `(snippet-a))
+	 (unread-command-events
+	  (listify-key-sequence (kbd (add-element-string snippet-a)))))
+     (should-error (copy-data-query))
+     (should (equal `(snippet-a) copy-data-user-snippets))))
+  ;; Given hot edit enable and existing snippet When adding a group
+  ;; with same key as existing element in the group Then will singal
+  ;; error
+  (with-hot-edit-fixtures
+   (let ((copy-data-user-snippets `(snippet-a))
+	 (unread-command-events
+	  (listify-key-sequence (kbd (concat (string copy-data-hot-edit-add-key)
+					     "gaTestGroup")))))
+     (should-error (copy-data-query))
+     (should (equal `(snippet-a)
+		    copy-data-user-snippets))))
+  ;; Given hot edit enabled and an existing group and a snippet insde
+  ;; When adding a snippet inside that group with same key as the
+  ;; exsiting one Then will signal error
+  (with-hot-edit-fixtures
+   (let ((copy-data-user-snippets `(,group-t ("ta" ,snippet-description-a ,snippet-data-a)))
+	 (unread-command-events
+	  (listify-key-sequence (kbd (add-element-string snippet-a "t")))))
+     (should-error (copy-data-query))
+     (should (equal
+	      `(,group-t ("ta" ,snippet-description-a ,snippet-data-a))
+	      copy-data-user-snippets)))))

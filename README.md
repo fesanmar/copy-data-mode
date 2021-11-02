@@ -77,7 +77,7 @@ Copyright (C) 2021 Felipe Santa Cruz Martínez Alcalá
 * Author: Felipe Santa Cruz Martínez Alcalá <fesanmar@gmail.com>
 * Maintainer: Felipe Santa Cruz Martínez Alcalá <fesanmar@gmail.com>
 * URL: https://github.com/fesanmar/copy-data-mode
-* Version: 1.1.0
+* Version: 1.2.0-SNAPSHOT
 * Created: 2021-08-19
 * Keywords: kill-ring
 

@@ -5,7 +5,7 @@
 ;; Author: Felipe Santa Cruz Martínez Alcalá <fesanmar@gmail.com>
 ;; Maintainer: Felipe Santa Cruz Martínez Alcalá <fesanmar@gmail.com>
 ;; URL: https://github.com/fesanmar/copy-data-mode
-;; Version: 1.1.0
+;; Version: 1.2.0-SNAPSHOT
 ;; Created: 2021-08-19
 ;; Keywords: kill-ring
 
@@ -59,6 +59,7 @@
 ;; thouse paths; the echo area will show you the aviable snippets or
 ;; groups for each level.
 
+;;; Custom groups and variables
 (defgroup copy-data-user-data nil
   "Options concerning user custom data copy.")
 
@@ -106,6 +107,7 @@ There are some functions already defined for this purpose:
 	  (function-item :tag "Place groups first" copy-data-sort-by-groups)
 	  (function-item :tag "Place snippets first" copy-data-sort-by-snippets)))
 
+;;; Custom faces
 (defface copy-data-snippet-key
   '((t :foreground "red"
        :weight bold))
@@ -116,28 +118,24 @@ There are some functions already defined for this purpose:
        :weight bold))
   "The face used by group's keys at the echo area.")
 
+;;; Constants
 (defconst copy-data--query-head "Select snippet:"
   "Head of the query created by `copy-data--create-query'")
+
+(defconst copy-data--empty-data "There is no snippet here yet..."
+  "Message to display when `copy-data-user-data' is nil.")
 
 (defconst copy-data--not-found-msg "There is no [%s] key"
   "Message to be displayed when user insert not existing key.")
 
-(defun copy-data--key (snippet)
-  "Returns the SNIPPET's key string."
-  (car snippet))
+(defconst copy-data--directory (file-name-directory load-file-name)
+  "Copy data extension's current directory.")
 
-(defun copy-data--description (snippet)
-  "Returns the SNIPPET's description."
-  (nth 1 snippet))
+;;; Load submodules
+(load-file (expand-file-name "./model.el" copy-data--directory))
+(load-file (expand-file-name "./hot-edit.el" copy-data--directory))
 
-(defun copy-data--group-p (snippet)
-  "Return t if SNIPPET is a group."
-  (= (length snippet) 2))
-
-(defun copy-data--snippet-p (snippet)
-  "Return t if SNIPPET is a real snippet not a group."
-  (= (length snippet) 3))
-
+;;; Main functions
 (defun copy-data-sort-by-groups (el1 el2)
   "Returns t if EL1 is a group and EL2 isn't."
   (and (copy-data--group-p el1)
@@ -154,9 +152,16 @@ There are some functions already defined for this purpose:
 
 (defun copy-data--create-query (snippets)
   "Creates accurate user data query string from SNIPPETS.
+
 SNIPPETS should be a list of snippets, like
 `copy-data-user-snippets'."
-  (defun create-snippet-query (snippet)
+  (defun create-snippet-query-head ()
+    (if (and (not snippets) copy-data-hot-edit-enable)
+	(format "%s Press %s to create a new element."
+		copy-data--empty-data
+		(string copy-data-hot-edit-add-key))
+      copy-data--query-head))
+  (defun create-snippet-query-body (snippet)
     (let ((last-key-char (substring (copy-data--key snippet) -1))
 	  (description (copy-data--description snippet))
 	  (accurate-key (if (copy-data--snippet-p snippet)
@@ -166,30 +171,23 @@ SNIPPETS should be a list of snippets, like
 	      (propertize last-key-char 'face accurate-key)
 	      "]: " description)))
   (let ((sorted-snippets (seq-sort copy-data-query-sort snippets)))
-    (concat copy-data--query-head
-	    (mapconcat 'create-snippet-query
+    (concat (create-snippet-query-head)
+	    (mapconcat 'create-snippet-query-body
 		       sorted-snippets
 		       ", "))))
 
-(defun copy-data--group-members (groups-key)
-  "Returns the member of `copy-data-user-snippets' for a group.
-GROUPS-KEY is the key for the group wanted to filter by. For
-example, if GROUPS-KEY is \"tt\", `copy-data--group-members' will
-return all the mebers with a \"tt\" starting key."
-  (-filter
-   (lambda (snippet)
-     (let ((groups-key-length (length groups-key))
-	   (snippet-key (copy-data--key snippet)))
-       (and
-	(string-prefix-p groups-key snippet-key)
-	(= (length snippet-key) (1+ groups-key-length)))))
-   copy-data-user-snippets))
-
 (defun copy-data--read-char (snippets-list)
   "Read a char from a buffer, displaying snippets options.
- The character displayed is the key's last character."
-  (read-char
-   (copy-data--create-query snippets-list)))
+
+ The character displayed is the key's last character. If
+ SNIPPETS-LIST is nil and hot edit is disabled will signal
+ error."
+  (if (or snippets-list
+	  (and (not snippets-list)
+	       copy-data-hot-edit-enable))
+      (read-char
+       (copy-data--create-query snippets-list))
+    (user-error copy-data--empty-data)))
 
 (defun copy-data-query (&optional prefix)
   "Push accurate data into the kill ring.
@@ -209,20 +207,19 @@ Can be customized as well.
 The order used to display the elements in the echo area can be
 customized by the `copy-data-query-sort' variable."
   (interactive)
-  (when (not copy-data-user-snippets)
-    (error "There is no snippet yet..."))
   (let* ((prefix (or prefix ""))
 	 (filterd-snippets (copy-data--group-members prefix))
-	 (wanted-key (concat
-		      prefix
-		      (char-to-string
-		       (copy-data--read-char filterd-snippets))))
-	 (found-snippet (-find (lambda (snippet)
+	 (user-char (copy-data--read-char filterd-snippets))
+	 (wanted-key (concat prefix (char-to-string user-char)))
+	 (found-snippet (seq-find (lambda (snippet)
 				 (string-equal (copy-data--key snippet) wanted-key))
 			       filterd-snippets)))
-    (cond ((and found-snippet
+    (cond ((and copy-data-hot-edit-enable
+		(seq-contains-p `(,copy-data-hot-edit-add-key) user-char))
+	   (copy-data--hot-edit-action user-char prefix))
+	  ((and found-snippet
 		(copy-data--snippet-p found-snippet))
-	   (kill-new (nth 2 found-snippet))
+	   (kill-new (copy-data--data found-snippet)) ; TODO: don't like that nth 2. Use selector
 	   (message "%s saved into kill ring."
 		    (copy-data--description found-snippet)))
 	  ((and found-snippet
@@ -238,6 +235,6 @@ save it into your kill ring. That way, you can that snippet
 either inside or outside Emacs."
   :lighter " copy-data"
   :global t
-  :version "1.1.0")
+  :version "1.2.0-SNAPSHOT")
 
 (provide 'copy-data-mode)
