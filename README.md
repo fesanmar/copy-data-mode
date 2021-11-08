@@ -21,7 +21,8 @@ Install copy-data-mode by placing `copy-data-mode.el` in
 ## Usage
 
 First of all, you need to create your backend, your data pool. You can
-create your snippets by customizing the `copy-data-user-snippets`:
+create your snippets by customizing the `copy-data-user-snippets`
+variable:
 
 ![Customize copy-data-user-snippet](./screenshots/copy-data-user-snippet_customize_option_example.png)
 
@@ -30,13 +31,13 @@ Or you can set the variable yourself. Here is an example:
 ```elisp
 (setq copy-data-user-snippets
       '(("h" "Home snippets")
-	("hd" "Dog name" "Roger")
-	("ha" "Home Address" "That Creepy House 1")
-	("w" "Work snippets")
-	("wp" "My project")
-	("wpb" "This year branches prefix" "/wawa/wi/wa/US21")
-	("wpt" "My Team Leader" "Roger As Well")
-	("wu" "Work User" "165432")))
+	    ("hd" "Dog name" "Roger")
+		("ha" "Home Address" "That Creepy House 1")
+		("w" "Work snippets")
+		("wp" "My project")
+		("wpb" "This year branches prefix" "/wawa/wi/wa/US21")
+		("wpt" "My Team Leader" "Roger As Well")
+		("wu" "Work User" "165432")))
 ```
 
 As you can see, you can create groups and place snippets inside those
@@ -51,9 +52,87 @@ area will show you the aviable snippets or groups for each level.
 If you want to know more about `copy-data-user-snippets` format, just
 run `C-h v copy-data-user-snippets`.
 
+Another way, maybe the easiest one, to create yor snippets and group
+is [Hot Edit](#Hot-Edit).
+
+## Hot Edit
+
+### What is Hot Edit?
+
+Hot Edit provides an easy and interactive interface that lets you
+create, delete and update snippets and groups in an interactive and
+easy way.
+
+Hot Edits saves the `copy-data-user-snippets` using Emacs
+`customize-save-variable` function. So using Hot Edits means that you
+will have a `custom-set-variables` call into your init file, or
+wherever file the `custom-file` is pointing at.
+
+### Enabling and using Hot Edit
+
+To use Hot Edit you must first set `copy-data-hot-edit-enable` to a
+non-nil value. This can be done by customizing
+`copy-data-hot-edit-enable` or by setting the value manually into your
+init file.
+
+Then you can call `M-x copy-data-query RET` and move through your
+snippets and groups. If you press `+` key, you will be able to create
+a new snippet or group inside your current location.
+
+If we have this snippets:
+
+```elisp
+(setq copy-data-user-snippets
+      '(("h" "Home snippets")
+	    ("hd" "Dog name" "Roger")
+		("ha" "Home Address" "That Creepy House 1")
+		("w" "Work snippets")
+		("wp" "My project")
+		("wpb" "This year branches prefix" "/wawa/wi/wa/US21")
+		("wpt" "My Team Leader" "Roger As Well")
+		("wu" "Work User" "165432")))
+ ```
+ 
+ We can create a new Snippet inside `Home snippets` by pressing `M-x
+ copy-data-user-snippets RET h+` and following the instructions. Let's
+ create a snippet with the following data:
+ 
+ - Group: h
+ - Key: e
+ - Description: Email
+ - Email: mymail@mail.com
+
+We must run `copy-data-query` and press:
+
+- `h` (We enter into `Home snippets`)
+- `+` to create a new element
+- `s` to tell Hot Edit that the new element will be a snippet
+- `e` as the new snippet's key
+- `Email RET` (the description)
+- `mymail@mail.com RET` (the snippet itself)
+
+![Copy Data Hot Edit Add Snippet](./screenshots/copy-data-hot-edit_create_snippet.gif)
+
+We have created a new snippet! Now our `copy-data-user-snippets`
+variable looks like this:
+
+```elisp
+(("h" "Home snippets")
+ ("hd" "Dog name" "Roger")
+ ("ha" "Home Address" "That Creepy House 1")
+ ("w" "Work snippets")
+ ("wp" "My project")
+ ("wpb" "This year branches prefix" "/wawa/wi/wa/US21")
+ ("wpt" "My Team Leader" "Roger As Well")
+ ("wu" "Work User" "165432")
+ ("he" "Email" "mymail@mail.com"))
+```
+
 ## Customizations
 
 A number of variables can be custimized.
+
+In the first place the `copy-data-user-snippets` can be customized.
 
 The faces used to display the snippets and groups keys at the echo
 area are defined at `copy-data-snippet-key` and `copy-data-group-key`.
