@@ -43,13 +43,13 @@
 
 ;; (setq copy-data-user-snippets
 ;;       '(("h" "Home snippets")
-;; 	("hd" "Dog name" "Roger")
-;; 	("ha" "Home Address" "That Creepy House 1")
-;; 	("w" "Work snippets")
-;; 	("wp" "My project")
-;; 	("wpb" "This year branches prefix" "/wawa/wi/wa/US21")
-;; 	("wpt" "My Team Leader" "Roger As Well")
-;; 	("wu" "Work User" "165432")))
+;; 	 ("hd" "Dog name" "Roger")
+;; 	 ("ha" "Home Address" "That Creepy House 1")
+;; 	 ("w" "Work snippets")
+;; 	 ("wp" "My project")
+;; 	 ("wpb" "This year branches prefix" "/wawa/wi/wa/US21")
+;; 	 ("wpt" "My Team Leader" "Roger As Well")
+;; 	 ("wu" "Work User" "165432")))
 
 ;; As you can see, you can create groups and place snippets inside
 ;; those groups. Of course, you can create snippet belonging to no
@@ -122,6 +122,11 @@ There are some functions already defined for this purpose:
   :group 'copy-data-hot-edit
   :type 'character)
 
+(defcustom copy-data-hot-edit-edit-key ?.
+  "The char used by hot edit to edit an element."
+  :group 'copy-data-hot-edit
+  :type 'character)
+
 ;;; Custom faces
 (defface copy-data-snippet-key
   '((t :foreground "red"
@@ -134,6 +139,8 @@ There are some functions already defined for this purpose:
   "The face used by group's keys at the echo area.")
 
 ;;; Constants
+
+;; Copy Data General constants
 (defconst copy-data--query-head "Select snippet:"
   "Head of the query created by `copy-data--create-query'")
 
@@ -146,7 +153,24 @@ There are some functions already defined for this purpose:
 (defconst copy-data--directory (file-name-directory load-file-name)
   "Copy data extension's current directory.")
 
+;; Hot Edit cosntants
+(defconst copy-data--hot-edit-edition-msg "Select element to edit: "
+  "Hot Edit message as head for edition action.")
+
 ;;; Copy data model for dealing with snippets and groups
+(defun copy-data--make-element (key description &optional data)
+  "Creates a snippet with KEY, DESCRIPTION and DATA.
+
+KEY must be a string representing the element's path and key
+inside the group. DESCRIPTION must be a string describing de
+element. And DATA if probided, should be a string as well. In
+that the function will return a snippet. Otherwise, if DATA is
+nil, a group will be retrieved."
+  (let ((element (list key description)))
+    (if data
+	(append element (list data))
+      element)))
+
 (defun copy-data--key (snippet)
   "Returns the SNIPPET's key string."
   (car snippet))
@@ -166,6 +190,16 @@ There are some functions already defined for this purpose:
 (defun copy-data--snippet-p (snippet)
   "Return t if SNIPPET is a real snippet not a group."
   (= (length snippet) 3))
+
+(defun copy-data--element (key group)
+  "Finds KEY in GROUP and retunrs its element if exists o returns nil.
+
+KEY musth be a string representing the element for example
+\"tta\". GROUP, in the other hand must be the list of elements
+used to find the KEY."
+  (seq-find (lambda (snippet)
+	      (string-equal (copy-data--key snippet) key))
+	    group))
 
 (defun copy-data--group-members (groups-key)
   "Returns the member of `copy-data-user-snippets' for a group.
@@ -192,81 +226,7 @@ PATH mus be the group's path. For example, if there is a group
 	  (copy-data--group-members path))))
     (seq-contains-p used-keys key)))
 
-
-;;; Hot edit functions
-(defun copy-data--user-want-group ()
-  "Ask user if want to create a group.
-If user wants a group, return t. If user wants snippets, returns
-nil. Otherwise it will signal error."
-  (let ((char (read-char "Create:\ng - Group\ns - Snippet")))
-    (cond ((= char ?g) t)
-	  ((= char ?s) nil)
-	  (t (user-error "[%c] is not a valid option" char)))))
-
-(defun copy-data--ask-for-not-empty-string (wanted-data)
-  "Ask user for a string and signal error if is empty."
-  (let ((str (string-trim
-	      (read-string (concat wanted-data ": ")))))
-    (if (string-empty-p str)
-	(user-error "%s can't be empty" wanted-data)
-      str)))
-
-(defun copy-data--ask-for-key (prefix type)
-  "Ask user for a key and signal error if key is in use.
-
-PREFIX mus be the group path. For example, it can be \"tt\". The
-function will check if the user enter a char that already existis
-for \"tt\" group in `copy-data-user-snippets' list. If user
-enters 'l', the function will check if already exist a path like
-\"ttl\".
-
-TYPE must be a string, typically \"group\" or
-\"snippet\". This string will be used to display the accurate
-promt."
-  (let ((key (concat
-	      prefix
-	      (string
-	       (read-char
-		(format "Press any valid key as your %s's key..."
-			type))))))
-    (if (copy-data--key-exist-in-group-p prefix key)
-	(user-error "[%s] key already exists" key)
-      key)))
-
-(defun copy-data--ask-for-element (path)
-  "Ask for an element to insert into `copy-data-user-snippets'."
-  (let* ((group (copy-data--user-want-group))
-	 (el-type (if group "group" "snippet"))
-	 (key (copy-data--ask-for-key path
-				      el-type))
-	 (description
-	  (copy-data--ask-for-not-empty-string "Description"))
-	 (data (unless group
-		 (copy-data--ask-for-not-empty-string "Snippet"))))
-    (if group
-	`(,key ,description)
-      `(,key ,description ,data))))
-
-(defun copy-data--hot-edit-action (action path)
-  "Runs the accurate hot-edit action.
-
-ACTION should be a char. If it matches any of chars defined in
-the variables `copy-data-hot-edit-add-key',
-`copy-data-hot-edit-remove-key' or
-`copy-data-hot-edit-modify-key' the accurate action will be
-executed.
-
-The PATH argument is used to give a context. It tells Emacs where
-should run that command. Will be something like \"tt\", meaning
-group t inside t. "
-  (cond ((equal action copy-data-hot-edit-add-key)
-	 (add-to-list 'copy-data-user-snippets
-		      (copy-data--ask-for-element path)
-		      t)
-	 (customize-save-variable 'copy-data-user-snippets
-				  copy-data-user-snippets))))
-
-;;; Main functions
+;;; Sorting options functions
 (defun copy-data-sort-by-groups (el1 el2)
   "Returns t if EL1 is a group and EL2 isn't."
   (and (copy-data--group-p el1)
@@ -281,7 +241,14 @@ group t inside t. "
   "Returs nil."
   nil)
 
-(defun copy-data--create-query (snippets)
+;;; Helper functions
+
+(defun copy-data--key-doesnt-exist-msg (wanted-key)
+  "Displays in the echo area an error messages saying WANTED-KEY
+doesn't exists."
+  (message copy-data--not-found-msg wanted-key))
+
+(defun copy-data--create-query (snippets &optional prompt)
   "Creates accurate user data query string from SNIPPETS.
 
 SNIPPETS should be a list of snippets, like
@@ -291,7 +258,7 @@ SNIPPETS should be a list of snippets, like
 	(format "%s Press %s to create a new element."
 		copy-data--empty-data
 		(string copy-data-hot-edit-add-key))
-      copy-data--query-head))
+      (or prompt copy-data--query-head)))
   (defun create-snippet-query-body (snippet)
     (let ((last-key-char (substring (copy-data--key snippet) -1))
 	  (description (copy-data--description snippet))
@@ -320,6 +287,149 @@ SNIPPETS should be a list of snippets, like
        (copy-data--create-query snippets-list))
     (user-error copy-data--empty-data)))
 
+;;; Hot edit functions
+(defun copy-data--user-want-group ()
+  "Ask user if want to create a group.
+If user wants a group, return t. If user wants snippets, returns
+nil. Otherwise it will signal error."
+  (let ((char (read-char "Create:\ng - Group\ns - Snippet")))
+    (cond ((= char ?g) t)
+	  ((= char ?s) nil)
+	  (t (user-error "[%c] is not a valid option" char)))))
+
+(defun copy-data--ask-for-not-empty-string (wanted-data &optional default)
+  "Ask user for a string and signal error if is empty."
+  (let* ((max-length 30)
+	 (default-length (and default (length default)))
+	 (formated-default
+	  (and default (if (> default-length max-length)
+			   (concat (substring default 0 max-length) "...")
+			 default)))
+	 (hint (or (and default (concat " (" formated-default ")")) ""))
+	 (prompt (concat wanted-data hint ": "))
+	 (str (string-trim
+	       (read-string prompt nil nil default))))
+    (if (string-empty-p str)
+	(user-error "%s can't be empty" wanted-data)
+      str)))
+
+(defun copy-data--ask-for-key (prefix &optional prompt query should-exists)
+  "Ask user for a key and returns the key's qualified path.
+
+PREFIX mus be the group path. For example, it can be \"tt\". The
+function will check if the user enter a char that already existis
+for \"tt\" group in `copy-data-user-snippets' list. If user
+enters 'l', the function will check if already exist a path like
+\"ttl\".
+
+PROMPT, if any, must be a string telling the user what to do. If
+PROMPT is nil `copy-data--query-head' will be used instead.
+
+If QUERY is non nil the function will display a string with the
+differtens elements inside PREFIX's group, otherwise will display
+only PROMPT.
+
+If SHOULD-EXISTS is non nil, singals an error if key doesn't
+exists inside the group represented by PREFIX.
+
+This function returns the key selected by the user qualified.
+Meaning that if the PATH is \"tt\" and the user select ?a, the
+function will return \"tta\"."
+  (concat
+   prefix
+   (string
+    (let* ((key
+	    (if query
+		(read-char
+		 (copy-data--create-query
+		  (copy-data--group-members prefix)
+		  prompt))
+	      (read-char (or prompt copy-data--query-head))))
+	   (key-exists (copy-data--key-exist-in-group-p prefix key)))
+      (if (or key-exists (and (not key-exists) (not should-exists)))
+	  key
+	(copy-data--key-doesnt-exist-msg (string key)))))))
+
+(defun copy-data--ask-for-new-key (prefix type)
+  "Ask user for a key and signal error if key is in use.
+
+PREFIX mus be the group path. For example, it can be \"tt\". The
+function will check if the user enter a char that already existis
+for \"tt\" group in `copy-data-user-snippets' list. If user
+enters 'l', the function will check if already exist a path like
+\"ttl\".
+
+TYPE must be a string, typically \"group\" or
+\"snippet\". This string will be used to display the accurate
+promt."
+  (let ((key (copy-data--ask-for-key
+	      prefix
+	      (format "Press any valid key as your %s's key..." type))))
+    (if (copy-data--key-exist-in-group-p prefix key)
+	(user-error "[%s] key already exists" key)
+      key)))
+
+(defun copy-data--ask-for-element (path)
+  "Ask or an element to insert into `copy-data-user-snippets'."
+  (let* ((group (copy-data--user-want-group))
+	 (el-type (if group "group" "snippet"))
+	 (key (copy-data--ask-for-new-key path
+					  el-type))
+	 (description
+	  (copy-data--ask-for-not-empty-string "Description"))
+	 (data (unless group
+		 (copy-data--ask-for-not-empty-string "Snippet"))))
+    (if group
+	`(,key ,description)
+      `(,key ,description ,data))))
+
+(defun copy-data--hot-edit-action (action path)
+  "Runs the accurate hot-edit action.
+
+ACTION should be a char. If it matches any of chars defined in
+the variables `copy-data-hot-edit-add-key',
+`copy-data-hot-edit-remove-key' or
+`copy-data-hot-edit-modify-key' the accurate action will be
+executed.
+
+The PATH argument is used to give a context. It tells Emacs where
+should run that command. Will be something like \"tt\", meaning
+group t inside t. "
+  (cond ((equal action copy-data-hot-edit-add-key)
+	 (add-to-list 'copy-data-user-snippets
+		      (copy-data--ask-for-element path)
+		      t))
+	((equal action copy-data-hot-edit-edit-key)
+	 (let* ((members (copy-data--group-members path))
+		(el-key
+		 (copy-data--ask-for-key path copy-data--hot-edit-edition-msg t))
+		(element (copy-data--element el-key members))
+		(description-default (copy-data--description element))
+		(description
+		 (copy-data--ask-for-not-empty-string
+		  "Description"
+		  description-default))
+		(is-snippet (copy-data--snippet-p element))
+		(data-default (and is-snippet (copy-data--data element)))
+		(data
+		 (and is-snippet
+		      (copy-data--ask-for-not-empty-string
+		       "Snippet"
+		       data-default)))
+		(new-element (copy-data--make-element el-key description data)))
+	   (if (equal element new-element)
+	       (user-error "Element hasn't change and no action need to be performed.")
+	     (setq copy-data-user-snippets
+		   (seq-remove (lambda (el)
+				 (string= (copy-data--key el) el-key))
+			       copy-data-user-snippets)))
+	   (add-to-list 'copy-data-user-snippets
+			new-element))))
+  (customize-save-variable 'copy-data-user-snippets
+			   copy-data-user-snippets))
+
+;;; Main functions
+
 (defun copy-data-query (&optional prefix)
   "Push accurate data into the kill ring.
 
@@ -342,11 +452,11 @@ customized by the `copy-data-query-sort' variable."
 	 (filterd-snippets (copy-data--group-members prefix))
 	 (user-char (copy-data--read-char filterd-snippets))
 	 (wanted-key (concat prefix (char-to-string user-char)))
-	 (found-snippet (seq-find (lambda (snippet)
-				 (string-equal (copy-data--key snippet) wanted-key))
-			       filterd-snippets)))
+	 (found-snippet (copy-data--element wanted-key filterd-snippets)))
     (cond ((and copy-data-hot-edit-enable
-		(seq-contains-p `(,copy-data-hot-edit-add-key) user-char))
+		(seq-contains-p
+		 `(,copy-data-hot-edit-add-key ,copy-data-hot-edit-edit-key)
+		 user-char))
 	   (copy-data--hot-edit-action user-char prefix))
 	  ((and found-snippet
 		(copy-data--snippet-p found-snippet))

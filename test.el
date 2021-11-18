@@ -178,21 +178,44 @@ description \"aTest\" and the data \"ATest\"."
 	 (concat (copy-data--data element) return)
        ""))))
 
-(ert-deftest copy-data-hot-edit-add ()
-  "If `copy-data-hot-edit-enable' is t should add an element."
-  ;; Given hot edit disable When adding snippet Then will signal error
+(defun edit-element-string (key group &optional new-description new-data)
+  "Creates string of events for editing an element.
+
+If GROUP is non nil the data part of the string won't be
+generated.
+
+If NEW-DESCRIPTION or NEW-DATA are nil a return character is used
+instead."
+  (let* ((return "\r")
+	 (empty "")
+	 (group-string
+	  (concat
+	   (string copy-data-hot-edit-edit-key)
+	   key
+	   (or new-description empty)
+	   return)))
+    (if group
+	group-string
+      (concat group-string (or new-data empty) return))))
+
+(ert-deftest copy-data-hot-edit-add-disabled ()
+  "Given hot edit disable When adding snippet Then will signal error"
   (with-hot-edit-fixtures
    (let (kill-ring
 	 (unread-command-events (listify-key-sequence (kbd "+")))
 	 (copy-data-hot-edit-enable nil))
      (should-error (copy-data-query))
-     (should-not kill-ring)))
-  ;; Given hot edit enabled When adding snippet Then will be added
+     (should-not kill-ring))))
+
+(ert-deftest copy-data-hot-edit-add-to-root ()
+  "Given hot edit enabled When adding snippet Then will be added"
   (with-hot-edit-fixtures
    (let ((unread-command-events
 	  (listify-key-sequence (kbd (add-element-string snippet-a)))))
      (copy-data-query)
-     (should (equal `(,snippet-a) copy-data-user-snippets))))
+     (should (equal `(,snippet-a) copy-data-user-snippets)))))
+
+(ert-deftest copy-data-hot-edit-add ()
   ;; Given hot edit enabled and an existing group When adding a
   ;; snippet inside it Then will be added
   (with-hot-edit-fixtures
@@ -240,3 +263,98 @@ description \"aTest\" and the data \"ATest\"."
      (should (equal
 	      `(,group-t ("ta" ,snippet-description-a ,snippet-data-a))
 	      copy-data-user-snippets)))))
+
+(ert-deftest copy-data-hot-edit-edit-disabled-hot-edit ()
+  "Given hot edit not enabled When edit Then signals error."
+  (with-hot-edit-fixtures
+   (let ((copy-data-hot-edit-enable nil)
+	 (copy-data-user-snippets `(snippet-a))
+	 (unread-command-events
+	  (listify-key-sequence (kbd (string copy-data-hot-edit-edit-key)))))
+     (should-error (copy-data-query)))))
+
+(ert-deftest copy-data-hot-edit-edit-empty-list ()
+  "Given hot edit enabled and empty list of snippets When edit
+Then signals error."
+  (with-hot-edit-fixtures
+   (let ((copy-data-hot-edit-enable nil)
+	 (unread-command-events
+	  (listify-key-sequence (kbd (string copy-data-hot-edit-edit-key)))))
+     (should-error (copy-data-query)))))
+
+(ert-deftest copy-data-hot-edit-edit-existing-snippet-with-new-data-and-description ()
+  "Given hot edit enabled When edit data and description of an
+existing snippet Then it will be modified."
+  (with-hot-edit-fixtures
+   (let* ((copy-data-user-snippets `(,snippet-a))
+	  (key "a")
+	  (new-description "NewDescription")
+	  (new-data "NewData")
+	  (unread-command-events
+	   (listify-key-sequence
+	    (kbd (edit-element-string key nil new-description new-data)))))
+     (copy-data-query)
+     (should (equal  copy-data-user-snippets `((,key ,new-description ,new-data)))))))
+
+(ert-deftest copy-data-hot-edit-edit-existing-snippet-with-new-description ()
+  "Given hot edit enabled When edit description of an
+existing snippet Then it will be modified."
+  (with-hot-edit-fixtures
+   (let* ((copy-data-user-snippets `(,snippet-a))
+	  (key "a")
+	  (new-description "NewDescription")
+	  (expected-data (copy-data--data snippet-a))
+	  (unread-command-events
+	   (listify-key-sequence
+	    (kbd (edit-element-string key nil new-description)))))
+     (copy-data-query)
+     (should (equal  copy-data-user-snippets `((,key ,new-description ,expected-data)))))))
+
+(ert-deftest copy-data-hot-edit-edit-existing-snippet-with-new-data ()
+  "Given hot edit enabled When edit data of an existing snippet
+Then it will be modified."
+  (with-hot-edit-fixtures
+   (let* ((copy-data-user-snippets `(,snippet-a))
+	  (key "a")
+	  (expected-description (copy-data--description snippet-a))
+	  (new-data "NewData")
+	  (unread-command-events
+	   (listify-key-sequence
+	    (kbd (edit-element-string key nil nil new-data)))))
+     (copy-data-query)
+     (should (equal  copy-data-user-snippets `((,key ,expected-description ,new-data)))))))
+
+(ert-deftest copy-data-hot-edit-edit-existing-group-with-new-description ()
+  "Given hot edit enabled When edit description of an existing
+group Then it will be modified."
+  (with-hot-edit-fixtures
+   (let* ((copy-data-user-snippets `(,group-t))
+	  (key "t")
+	  (new-description "NewGroupDescription")
+	  (unread-command-events
+	   (listify-key-sequence
+	    (kbd (edit-element-string key t new-description)))))
+     (copy-data-query)
+     (should (equal  copy-data-user-snippets `((,key ,new-description)))))))
+
+(ert-deftest copy-data-hot-edit-edit-existing-snippet-with-no-real-update ()
+  "Given hot edit enabled When edit nothinn of an existing
+snippet Then signals error"
+  (with-hot-edit-fixtures
+   (let* ((copy-data-user-snippets `(,snippet-a))
+	  (key "a")
+	  (unread-command-events
+	   (listify-key-sequence
+	    (kbd (edit-element-string key nil)))))
+     (should-error (copy-data-query)))))
+
+(ert-deftest copy-data-hot-edit-edit-existing-group-with-no-real-update ()
+  "Given hot edit enabled When edit nothinn of an existing group
+Then signals error"
+  (with-hot-edit-fixtures
+   (let* ((copy-data-user-snippets `(,group-t))
+	  (key "t")
+	  (unread-command-events
+	   (listify-key-sequence
+	    (kbd (edit-element-string key t)))))
+     (should-error (copy-data-query)))))
