@@ -43,13 +43,13 @@
 
 ;; (setq copy-data-user-snippets
 ;;       '(("h" "Home snippets")
-;; 	 ("hd" "Dog name" "Roger")
-;; 	 ("ha" "Home Address" "That Creepy House 1")
-;; 	 ("w" "Work snippets")
-;; 	 ("wp" "My project")
-;; 	 ("wpb" "This year branches prefix" "/wawa/wi/wa/US21")
-;; 	 ("wpt" "My Team Leader" "Roger As Well")
-;; 	 ("wu" "Work User" "165432")))
+;; 	   ("hd" "Dog name" "Roger")
+;; 	   ("ha" "Home Address" "That Creepy House 1")
+;; 	   ("w" "Work snippets")
+;; 	   ("wp" "My project")
+;; 	   ("wpb" "This year branches prefix" "/wawa/wi/wa/US21")
+;; 	   ("wpt" "My Team Leader" "Roger As Well")
+;; 	   ("wu" "Work User" "165432")))
 
 ;; As you can see, you can create groups and place snippets inside
 ;; those groups. Of course, you can create snippet belonging to no
@@ -350,7 +350,7 @@ function will return \"tta\"."
 	  key
 	(copy-data--key-doesnt-exist-msg (string key)))))))
 
-(defun copy-data--ask-for-new-key (prefix type)
+(defun copy-data--ask-for-new-key (prefix type &optional default)
   "Ask user for a key and signal error if key is in use.
 
 PREFIX mus be the group path. For example, it can be \"tt\". The
@@ -361,16 +361,28 @@ enters 'l', the function will check if already exist a path like
 
 TYPE must be a string, typically \"group\" or
 \"snippet\". This string will be used to display the accurate
-promt."
-  (let ((key (copy-data--ask-for-key
-	      prefix
-	      (format "Press any valid key as your %s's key..." type))))
-    (if (copy-data--key-exist-in-group-p prefix key)
-	(user-error "[%s] key already exists" key)
-      key)))
+promt.
 
-(defun copy-data--ask-for-element (path)
-  "Ask or an element to insert into `copy-data-user-snippets'."
+DEFAULT must be a string value, similar to prefix plus one char.
+If so when the user press the return key (?\C-m char or ^M
+string) the defualt value will be returned. The prompt will
+display this option."
+  (let* ((default-prompt
+	   (or (and default
+		    (format " or press RET to use [%s]"
+			    (substring default (- (length default) 1))))
+	       ""))
+	 (prompt (format "Press any valid key as your %s's key%s..." type default-prompt))
+	 (key (copy-data--ask-for-key prefix prompt)))
+    (cond ((string-suffix-p "\15" key) default) 
+	  ((copy-data--key-exist-in-group-p prefix key) (user-error "[%s] key already exists" key))
+	  (t key))))
+
+(defun copy-data--create-element-interactiviley (path)
+  "Ask for an element to insert into `copy-data-user-snippets'.
+
+This function creates a new element in PATH but doesn't save
+updated `copy-data-user-snippets' variable for future sessions."
   (let* ((group (copy-data--user-want-group))
 	 (el-type (if group "group" "snippet"))
 	 (key (copy-data--ask-for-new-key path
@@ -378,10 +390,44 @@ promt."
 	 (description
 	  (copy-data--ask-for-not-empty-string "Description"))
 	 (data (unless group
-		 (copy-data--ask-for-not-empty-string "Snippet"))))
-    (if group
-	`(,key ,description)
-      `(,key ,description ,data))))
+		 (copy-data--ask-for-not-empty-string "Snippet")))
+	 (element (if group
+		      `(,key ,description)
+		    `(,key ,description ,data))))
+    (add-to-list 'copy-data-user-snippets element t)))
+
+(defun copy-data--update-element-interactively (path)
+  "Interactively guide user to update an element.
+
+This function updates the element in PATH. But doesn't save
+updated `copy-data-user-snippets' variable for future sessions."
+  (let* ((members (copy-data--group-members path))
+	 (el-key
+		 (copy-data--ask-for-key path copy-data--hot-edit-edition-msg t))
+	 (element (copy-data--element el-key members))
+	 (is-snippet (copy-data--snippet-p element))
+	 (type (if is-snippet "snippet" "group"))
+	 (description-default (copy-data--description element))
+	 (new-key (copy-data--ask-for-new-key path type el-key))
+	 (description
+	  (copy-data--ask-for-not-empty-string
+	   "Description"
+	   description-default))
+	 (data-default (and is-snippet (copy-data--data element)))
+	 (data
+	  (and is-snippet
+	       (copy-data--ask-for-not-empty-string
+		"Snippet"
+		data-default)))
+	 (new-element (copy-data--make-element new-key description data)))
+    (if (equal element new-element)
+	(user-error "Element hasn't change and no action need to be performed.")
+      (setq copy-data-user-snippets
+	    (seq-remove (lambda (el)
+			  (string= (copy-data--key el) el-key))
+			copy-data-user-snippets)))
+    (add-to-list 'copy-data-user-snippets
+		 new-element)))
 
 (defun copy-data--hot-edit-action (action path)
   "Runs the accurate hot-edit action.
@@ -396,35 +442,9 @@ The PATH argument is used to give a context. It tells Emacs where
 should run that command. Will be something like \"tt\", meaning
 group t inside t. "
   (cond ((equal action copy-data-hot-edit-add-key)
-	 (add-to-list 'copy-data-user-snippets
-		      (copy-data--ask-for-element path)
-		      t))
+	 (copy-data--create-element-interactiviley path))
 	((equal action copy-data-hot-edit-edit-key)
-	 (let* ((members (copy-data--group-members path))
-		(el-key
-		 (copy-data--ask-for-key path copy-data--hot-edit-edition-msg t))
-		(element (copy-data--element el-key members))
-		(description-default (copy-data--description element))
-		(description
-		 (copy-data--ask-for-not-empty-string
-		  "Description"
-		  description-default))
-		(is-snippet (copy-data--snippet-p element))
-		(data-default (and is-snippet (copy-data--data element)))
-		(data
-		 (and is-snippet
-		      (copy-data--ask-for-not-empty-string
-		       "Snippet"
-		       data-default)))
-		(new-element (copy-data--make-element el-key description data)))
-	   (if (equal element new-element)
-	       (user-error "Element hasn't change and no action need to be performed.")
-	     (setq copy-data-user-snippets
-		   (seq-remove (lambda (el)
-				 (string= (copy-data--key el) el-key))
-			       copy-data-user-snippets)))
-	   (add-to-list 'copy-data-user-snippets
-			new-element))))
+	 (copy-data--update-element-interactively path)))
   (customize-save-variable 'copy-data-user-snippets
 			   copy-data-user-snippets))
 

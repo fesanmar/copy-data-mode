@@ -178,7 +178,7 @@ description \"aTest\" and the data \"ATest\"."
 	 (concat (copy-data--data element) return)
        ""))))
 
-(defun edit-element-string (key group &optional new-description new-data)
+(defun edit-element-string (key group &optional new-description new-data new-key)
   "Creates string of events for editing an element.
 
 If GROUP is non nil the data part of the string won't be
@@ -192,6 +192,7 @@ instead."
 	  (concat
 	   (string copy-data-hot-edit-edit-key)
 	   key
+	   (or new-key return)
 	   (or new-description empty)
 	   return)))
     (if group
@@ -280,6 +281,46 @@ Then signals error."
    (let ((copy-data-hot-edit-enable nil)
 	 (unread-command-events
 	  (listify-key-sequence (kbd (string copy-data-hot-edit-edit-key)))))
+     (should-error (copy-data-query)))))
+
+(ert-deftest copy-data-hot-edit-edit-existing-snippet-with-new-key-data-and-description ()
+  "Given hot edit enabled When edit key, data and description of
+an existing snippet Then it will be modified."
+  (with-hot-edit-fixtures
+   (let* ((copy-data-user-snippets `(,snippet-a))
+	  (key "a")
+	  (new-key "b")
+	  (new-description "NewDescription")
+	  (new-data "NewData")
+	  (unread-command-events
+	   (listify-key-sequence
+	    (kbd (edit-element-string key nil new-description new-data new-key)))))
+     (copy-data-query)
+     (should (equal  copy-data-user-snippets `((,new-key ,new-description ,new-data)))))))
+
+(ert-deftest copy-data-hot-edit-edit-existing-snippet-with-new-key ()
+  "Given hot edit enabled When edit an existing snippet's key
+Then it will be modified."
+  (with-hot-edit-fixtures
+   (let* ((copy-data-user-snippets `(,snippet-a))
+	  (key "a")
+	  (new-key "b")
+	  (unread-command-events
+	   (listify-key-sequence
+	    (kbd (edit-element-string key nil nil nil new-key)))))
+     (copy-data-query)
+     (should (equal  copy-data-user-snippets `((,new-key ,snippet-description-a ,snippet-data-a)))))))
+
+(ert-deftest copy-data-hot-edit-edit-existing-snippet-with-an-existing-key ()
+  "Given hot edit enabled When edit an existing snippet's key
+with another element's key Then signals error"
+  (with-hot-edit-fixtures
+   (let* ((copy-data-user-snippets `(,snippet-a ,group-t))
+	  (key snippet-key-a)
+	  (new-key group-key-t)
+	  (unread-command-events
+	   (listify-key-sequence
+	    (kbd (edit-element-string key nil nil nil new-key)))))
      (should-error (copy-data-query)))))
 
 (ert-deftest copy-data-hot-edit-edit-existing-snippet-with-new-data-and-description ()

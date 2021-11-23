@@ -131,9 +131,9 @@ variable looks like this:
 To edit an element you can press the key defined in
 `copy-data-hot-edit-edit-key` (default is `.`) inside the desired
 group. Then, just press the key representing the element you want to
-edit. Copy Data will ask you to enter the new value of the description
-and, in case element isn't a group, the snippet itself. In both cases,
-old value is the default value.
+edit. Copy Data will ask you to enter the new value of the key, the
+description and, in case element isn't a group, the snippet itself. In
+all cases, old value is the default value.
 
 For example, lets change the element `("hd" "Dog name" "Roger")` into
 `("hd" "Dog name" "Bob")`.
@@ -143,7 +143,8 @@ For example, lets change the element `("hd" "Dog name" "Roger")` into
 We pressed: 
 - `h` to enter the group `Home snippets`
 - `.` to tell Copy Data we want to edit and element inside the current group
-- `RET` to tell Copy Data we don't want to change de element's definition
+- `RET` to tell Copy Data we don't want to change the element's key
+- `RET` to tell Copy Data we don't want to change the element's definition
 - `BobRET` To set the snippet's data to `Bob`.
 
 If you want to edit partially the old value (either on the description
