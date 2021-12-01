@@ -127,6 +127,11 @@ There are some functions already defined for this purpose:
   :group 'copy-data-hot-edit
   :type 'character)
 
+(defcustom copy-data-hot-edit-remove-key ?-
+  "The char used by hot edit to remove an element."
+  :group 'copy-data-hot-edit
+  :type 'character)
+
 ;;; Custom faces
 (defface copy-data-snippet-key
   '((t :foreground "red"
@@ -214,6 +219,14 @@ return all the mebers with a \"tt\" starting key."
 	(string-prefix-p groups-key snippet-key)
 	(= (length snippet-key) (1+ groups-key-length)))))
    copy-data-user-snippets))
+
+(defun copy-data--group-empty-p (group)
+  "Returns t if the GROUP is empty.
+
+If GROUP is not a group or if it's a group but it's emtpy returns
+nil."
+  (not (or (not (copy-data--group-p group))
+	   (copy-data--group-members (copy-data--key group)))))
 
 (defun copy-data--key-exist-in-group-p (path key)
   "Returs t if KEY exist as key of the group PATH.
@@ -345,7 +358,7 @@ function will return \"tta\"."
 		  (copy-data--group-members prefix)
 		  prompt))
 	      (read-char (or prompt copy-data--query-head))))
-	   (key-exists (copy-data--key-exist-in-group-p prefix key)))
+	   (key-exists (copy-data--key-exist-in-group-p prefix (concat prefix (string key)))))
       (if (or key-exists (and (not key-exists) (not should-exists)))
 	  key
 	(copy-data--key-doesnt-exist-msg (string key)))))))
@@ -378,6 +391,22 @@ display this option."
 	  ((copy-data--key-exist-in-group-p prefix key) (user-error "[%s] key already exists" key))
 	  (t key))))
 
+(defun copy-data--remove-element-by-key (el-key &optional remove-by-prefix)
+  "Remove element with EL-KEY ky from `copy-data-user-snippets'.
+
+If there is no element with EL-KEY key, this function won't do
+anything.
+
+If REMOVE-BY-PREFIX is non-nil value the function will remove
+every element whose key starts with EL-KEY."
+  (setq copy-data-user-snippets
+	(seq-remove (lambda (el)
+		      (let ((predicate (if remove-by-prefix
+					   #'string-prefix-p
+					 #'string=)))
+			(funcall predicate el-key (copy-data--key el))))
+		    copy-data-user-snippets)))
+
 (defun copy-data--create-element-interactiviley (path)
   "Ask for an element to insert into `copy-data-user-snippets'.
 
@@ -398,6 +427,9 @@ updated `copy-data-user-snippets' variable for future sessions."
 
 (defun copy-data--update-element-interactively (path)
   "Interactively guide user to update an element.
+
+If any element is updated this function return t. Otherwise nil
+will be returned.
 
 This function updates the element in PATH. But doesn't save
 updated `copy-data-user-snippets' variable for future sessions."
@@ -422,12 +454,36 @@ updated `copy-data-user-snippets' variable for future sessions."
 	 (new-element (copy-data--make-element new-key description data)))
     (if (equal element new-element)
 	(user-error "Element hasn't change and no action need to be performed.")
-      (setq copy-data-user-snippets
-	    (seq-remove (lambda (el)
-			  (string= (copy-data--key el) el-key))
-			copy-data-user-snippets)))
+      (copy-data--remove-element-by-key el-key))
     (add-to-list 'copy-data-user-snippets
 		 new-element)))
+
+(defun copy-data--remove-element-interactively (path)
+  "Interactively guide user to delete an element.
+
+This function removes the element whose key is PATH. If PATH is a
+group and it's not empty it will ask the user if he sure about
+removing the group recursively. If the user says yes, the group
+will be remove entirely.
+
+If any element is removed, this function return t. Otherwise nil
+will be returned.
+
+This function doesn't updated `copy-data-user-snippets' variable
+for future sessions."
+  (let* ((el-key (copy-data--ask-for-key path "Select element to remove:" t t))
+	 (element (copy-data--element el-key (copy-data--group-members path)))
+	 (description (copy-data--description element))
+	 (group-p (copy-data--group-p element))
+	 (emptyp (and group-p (copy-data--group-empty-p element)))
+	 (wants-to-remove
+	  (and
+	   (and group-p (not emptyp))
+	   (yes-or-no-p (format "\"%s\" is not empty. Remove it anyway?" description)))))
+    (if (or (not group-p) emptyp (and (not emptyp) wants-to-remove))
+	(copy-data--remove-element-by-key el-key group-p)
+      (message "Action aborted")
+      nil)))
 
 (defun copy-data--hot-edit-action (action path)
   "Runs the accurate hot-edit action.
@@ -440,13 +496,17 @@ executed.
 
 The PATH argument is used to give a context. It tells Emacs where
 should run that command. Will be something like \"tt\", meaning
-group t inside t. "
-  (cond ((equal action copy-data-hot-edit-add-key)
-	 (copy-data--create-element-interactiviley path))
-	((equal action copy-data-hot-edit-edit-key)
-	 (copy-data--update-element-interactively path)))
-  (customize-save-variable 'copy-data-user-snippets
-			   copy-data-user-snippets))
+group t inside t."
+  (let ((modifications-p
+	 (cond ((equal action copy-data-hot-edit-add-key)
+		(copy-data--create-element-interactiviley path))
+	       ((equal action copy-data-hot-edit-edit-key)
+		(copy-data--update-element-interactively path))
+	       ((equal action copy-data-hot-edit-remove-key)
+		(copy-data--remove-element-interactively path)))))
+    (when modifications-p
+      (customize-save-variable 'copy-data-user-snippets
+			       copy-data-user-snippets))))
 
 ;;; Main functions
 
@@ -475,7 +535,9 @@ customized by the `copy-data-query-sort' variable."
 	 (found-snippet (copy-data--element wanted-key filterd-snippets)))
     (cond ((and copy-data-hot-edit-enable
 		(seq-contains-p
-		 `(,copy-data-hot-edit-add-key ,copy-data-hot-edit-edit-key)
+		 `(,copy-data-hot-edit-add-key
+		   ,copy-data-hot-edit-edit-key
+		   ,copy-data-hot-edit-remove-key)
 		 user-char))
 	   (copy-data--hot-edit-action user-char prefix))
 	  ((and found-snippet
