@@ -142,7 +142,7 @@ For example, lets change the element `("hd" "Dog name" "Roger")` into
 
 We pressed: 
 - `h` to enter the group `Home snippets`
-- `.` to tell Copy Data we want to edit and element inside the current group
+- `.` to tell Copy Data we want to edit an element inside the current group
 - `RET` to tell Copy Data we don't want to change the element's key
 - `RET` to tell Copy Data we don't want to change the element's definition
 - `BobRET` To set the snippet's data to `Bob`.
@@ -150,6 +150,25 @@ We pressed:
 If you want to edit partially the old value (either on the description
 or in the snippet's data), you can press `M-n`. The old text will
 appear in the echo area so you can work with it.
+
+You can remove an element too, either an snippet or a group. 
+
+To remove an element, just navigate to the wanted group and press the
+`copy-data-hot-edit-remove-key` key (default `-`). Then pressed the
+representing the element to be removed. If you selected a group and it
+isn't empty, you'll be prompted if your are sure about removing the
+hole group.
+
+Lets remove the group `My project` and all its elements.
+
+![Copy Data Hot Edit Remove Snippet](./screenshots/copy-data-hot-edit_remove_element.gif)
+
+We pressed: 
+- `w` to enter the group `Work snippets`
+- `-` to tell Copy Data we want to remove an element inside the current group
+- `p` to select `My project`
+- `yesRET` to tell Copy Data that we are sure about removing `My
+  project` recursively
 
 ## Customizations
 
