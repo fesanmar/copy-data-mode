@@ -5,7 +5,7 @@
 ;; Author: Felipe Santa Cruz Martínez Alcalá <fesanmar@gmail.com>
 ;; Maintainer: Felipe Santa Cruz Martínez Alcalá <fesanmar@gmail.com>
 ;; URL: https://github.com/fesanmar/copy-data-mode
-;; Version: 1.2.0-SNAPSHOT
+;; Version: 1.2.0
 ;; Created: 2021-08-19
 ;; Keywords: kill-ring
 
@@ -558,6 +558,6 @@ save it into your kill ring. That way, you can that snippet
 either inside or outside Emacs."
   :lighter " copy-data"
   :global t
-  :version "1.2.0-SNAPSHOT")
+  :version "1.2.0")
 
 (provide 'copy-data-mode)
