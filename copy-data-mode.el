@@ -59,10 +59,18 @@
 ;; thouse paths; the echo area will show you the aviable snippets or
 ;; groups for each level.
 
+(require 'subr-x)
+(require 'cl-macs)
+
 ;;; Custom groups and variables
 ;;;; Main copy data customizations
+(defgroup copy-data nil
+  "Copy Data customizations"
+  :group 'applications)
+
 (defgroup copy-data-user-data nil
-  "Options concerning user custom data copy.")
+  "Options concerning Copy Data snippets"
+  :group 'copy-data)
 
 (defcustom copy-data-user-snippets nil
   "A list mapping options to user's data to push into the kill ring.
@@ -110,7 +118,8 @@ There are some functions already defined for this purpose:
 
 ;;;; Hot edit customizations
 (defgroup copy-data-hot-edit nil
-  "Options concerning hot edit features.")
+  "Options concerning hot edit features."
+  :group 'copy-data)
 
 (defcustom copy-data-hot-edit-enable nil
   "A boolean value that tells copy-data to use hot-edit."
@@ -211,7 +220,7 @@ used to find the KEY."
 GROUPS-KEY is the key for the group wanted to filter by. For
 example, if GROUPS-KEY is \"tt\", `copy-data--group-members' will
 return all the mebers with a \"tt\" starting key."
-  (-filter
+  (seq-filter
    (lambda (snippet)
      (let ((groups-key-length (length groups-key))
 	   (snippet-key (copy-data--key snippet)))
@@ -250,7 +259,7 @@ PATH mus be the group's path. For example, if there is a group
   (and (copy-data--snippet-p el1)
        (copy-data--group-p el2)))
 
-(defun copy-data-sort-no (el1 el2)
+(defun copy-data-sort-no (_ _)
   "Returs nil."
   nil)
 
@@ -266,26 +275,26 @@ doesn't exists."
 
 SNIPPETS should be a list of snippets, like
 `copy-data-user-snippets'."
-  (defun create-snippet-query-head ()
-    (if (and (not snippets) copy-data-hot-edit-enable)
-	(format "%s Press %s to create a new element."
-		copy-data--empty-data
-		(string copy-data-hot-edit-add-key))
-      (or prompt copy-data--query-head)))
-  (defun create-snippet-query-body (snippet)
-    (let ((last-key-char (substring (copy-data--key snippet) -1))
-	  (description (copy-data--description snippet))
-	  (accurate-key (if (copy-data--snippet-p snippet)
-			    'copy-data-snippet-key
-			  'copy-data-group-key)))
-      (concat " ["
-	      (propertize last-key-char 'face accurate-key)
-	      "]: " description)))
-  (let ((sorted-snippets (seq-sort copy-data-query-sort snippets)))
-    (concat (create-snippet-query-head)
-	    (mapconcat 'create-snippet-query-body
-		       sorted-snippets
-		       ", "))))
+  (cl-flet ((create-snippet-query-head ()
+	      (if (and (not snippets) copy-data-hot-edit-enable)
+		  (format "%s Press %s to create a new element."
+			  copy-data--empty-data
+			  (string copy-data-hot-edit-add-key))
+		(or prompt copy-data--query-head)))
+	    (create-snippet-query-body (snippet)
+	      (let ((last-key-char (substring (copy-data--key snippet) -1))
+		    (description (copy-data--description snippet))
+		    (accurate-key (if (copy-data--snippet-p snippet)
+				      'copy-data-snippet-key
+				    'copy-data-group-key)))
+		(concat " ["
+			(propertize last-key-char 'face accurate-key)
+			"]: " description))))
+    (let ((sorted-snippets (seq-sort copy-data-query-sort snippets)))
+      (concat (create-snippet-query-head)
+	      (mapconcat #'create-snippet-query-body
+			 sorted-snippets
+			 ", ")))))
 
 (defun copy-data--read-char (snippets-list)
   "Read a char from a buffer, displaying snippets options.

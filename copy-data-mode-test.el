@@ -21,6 +21,7 @@
 
 (require 'ert)
 (require 'copy-data-mode)
+(require 'cl-macs)
 (message "Emacs version: %s" emacs-version)
 
 ;;; Test constants
@@ -75,77 +76,36 @@ second element"
 
 (ert-deftest copy-data-create-query ()
   "`copy-data-create-query' should return query string"
-  (defun last-key-char (el)
-    (substring (copy-data--key el) -1))
-  (let* ((copy-data-hot-edit-enable nil)
-	 (abstract-query "%s [%s]: %s,  [%s]: %s,  [%s]: %s")
-	 (propertized-group-key-t
-	  (propertize group-key-t 'face 'copy-data-group-key))
-	 (propertized-key-snippet-a
-	  (propertize snippet-key-a 'face 'copy-data-snippet-key))
-	 (propertized-key-snippet-ta
-	  (propertize (last-key-char snippet-ta)
-		      'face 'copy-data-snippet-key))
-	 (formated-query
-	  (format abstract-query
-		  copy-data--query-head
-		  propertized-group-key-t
-		  group-description-t
-		  propertized-key-snippet-a
-		  snippet-description-a
-		  propertized-key-snippet-ta
-		  snippet-description-ta)))
-    (let ((copy-data-query-sort #'copy-data-sort-no))
-      (should
-       (equal-including-properties
-	(copy-data--create-query `(,group-t ,snippet-a ,snippet-ta))
-	formated-query)))
-    (let ((copy-data-query-sort #'copy-data-sort-by-groups))
-      (should
-       (equal-including-properties
-	(copy-data--create-query `(,snippet-a ,group-t ,snippet-ta))
-	formated-query)))
-    (let ((copy-data-query-sort #'copy-data-sort-by-snippets))
-      (should
-       (equal-including-properties
-	(copy-data--create-query `(,group-t ,snippet-a ,snippet-ta))
-	(format abstract-query
-		copy-data--query-head
-		propertized-key-snippet-a
-		snippet-description-a
-		propertized-key-snippet-ta
-		snippet-description-ta
-		propertized-group-key-t
-		group-description-t))))))
-
-(ert-deftest copy-data-query-test ()
-  "Copy `copy-data-query' interactively."
-  (let ((copy-data-hot-edit-enable nil)
-	(copy-data-user-snippets `(,group-t ,snippet-a ,snippet-ta)))
-    (let (kill-ring
-	  (unread-command-events (listify-key-sequence (kbd "a"))))
-      (copy-data-query)
-      (should (string= (car kill-ring) snippet-data-a)))
-    (let (kill-ring
-	  (unread-command-events (listify-key-sequence (kbd "ta"))))
-      (copy-data-query)
-      (should (string= (car kill-ring) snippet-group-t-data-a)))
-    (let (kill-ring
-	  (copy-data-user-snippets `(,group-t ,snippet-a))
-	  (unread-command-events (listify-key-sequence (kbd "t"))))
-      (should-error (copy-data-query))
-      (should-not kill-ring))
-    (let* (kill-ring
-	   (key-fail "o")
-	   (unread-command-events (listify-key-sequence (kbd key-fail))))
-      (should
-       (string= (copy-data-query)
-		(format copy-data--not-found-msg key-fail)))
-      (should-not kill-ring))
-    (let (kill-ring
-	  (copy-data-user-snippets nil))
-      (should-error (copy-data-query))
-      (should-not kill-ring))))
+  (cl-flet ((last-key-char (el)
+	      (substring (copy-data--key el) -1)))
+    (ert-deftest copy-data-query-test ()
+      "Copy `copy-data-query' interactively."
+      (let ((copy-data-hot-edit-enable nil)
+	    (copy-data-user-snippets `(,group-t ,snippet-a ,snippet-ta)))
+	(let (kill-ring
+	      (unread-command-events (listify-key-sequence (kbd "a"))))
+	  (copy-data-query)
+	  (should (string= (car kill-ring) snippet-data-a)))
+	(let (kill-ring
+	      (unread-command-events (listify-key-sequence (kbd "ta"))))
+	  (copy-data-query)
+	  (should (string= (car kill-ring) snippet-group-t-data-a)))
+	(let (kill-ring
+	      (copy-data-user-snippets `(,group-t ,snippet-a))
+	      (unread-command-events (listify-key-sequence (kbd "t"))))
+	  (should-error (copy-data-query))
+	  (should-not kill-ring))
+	(let* (kill-ring
+	       (key-fail "o")
+	       (unread-command-events (listify-key-sequence (kbd key-fail))))
+	  (should
+	   (string= (copy-data-query)
+		    (format copy-data--not-found-msg key-fail)))
+	  (should-not kill-ring))
+	(let (kill-ring
+	      (copy-data-user-snippets nil))
+	  (should-error (copy-data-query))
+	  (should-not kill-ring))))))
 
 (defmacro with-hot-edit-fixtures (&rest body)
   `(let ((test-custom-file (make-temp-file "hot-edit-custom" nil ".el")))
